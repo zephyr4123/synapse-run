@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码已过期</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .suggestions {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: left;
+        }
+
+        .suggestions h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .suggestions ul {
+            margin-left: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">⏰</div>
+        <h1>二维码已过期</h1>
+        <p class="message">
+            很抱歉，您访问的二维码已经过期或不存在。<br>
+            二维码有效期为5分钟。
+        </p>
+
+        <div class="suggestions">
+            <h3>💡 解决方法：</h3>
+            <ul>
+                <li>检查日志中是否有新的二维码链接</li>
+                <li>重新运行爬虫程序生成新的二维码</li>
+                <li>确保在二维码生成后5分钟内完成扫码</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            如有问题，请查看控制台日志
+        </div>
+    </div>
+</body>
+</html>

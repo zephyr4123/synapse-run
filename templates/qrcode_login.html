@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫码登录 - {{ platform.upper() }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .platform-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .qrcode-wrapper {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .qrcode-image {
+            max-width: 100%;
+            height: auto;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+
+        .status-container {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f0f4f8;
+        }
+
+        .status-waiting {
+            color: #ff9800;
+        }
+
+        .status-success {
+            color: #4caf50;
+        }
+
+        .status-expired {
+            color: #f44336;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            text-align: left;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .instructions h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="platform-badge">{{ platform.upper() }}</div>
+
+        <h1>扫码登录</h1>
+        <p class="subtitle">请使用手机App扫描下方二维码</p>
+
+        <div class="qrcode-wrapper">
+            <img src="data:image/png;base64,{{ qrcode_image }}" alt="登录二维码" class="qrcode-image" id="qrcodeImage">
+        </div>
+
+        <div class="status-container" id="statusContainer">
+            <div class="status-waiting">
+                <span class="spinner"></span>
+                <span id="statusText">等待扫码...</span>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📱 操作步骤：</h3>
+            <ol>
+                <li>打开 <strong>{{ platform.upper() }}</strong> 手机App</li>
+                <li>使用扫一扫功能扫描上方二维码</li>
+                <li>在手机上确认登录</li>
+                <li>等待页面自动跳转</li>
+            </ol>
+        </div>
+
+        <div class="footer">
+            二维码有效期：5分钟<br>
+            Session ID: {{ session_id[:8] }}...
+        </div>
+    </div>
+
+    <script>
+        const sessionId = '{{ session_id }}';
+        let checkInterval = null;
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            fetch(`/api/qrcode/${sessionId}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    const statusContainer = document.getElementById('statusContainer');
+                    const statusText = document.getElementById('statusText');
+
+                    if (data.status === 'success') {
+                        // 登录成功
+                        clearInterval(checkInterval);
+                        statusContainer.innerHTML = `
+                            <div class="status-success">
+                                <div class="success-icon">✅</div>
+                                <strong>登录成功！</strong><br>
+                                <span style="font-size: 14px;">您可以关闭此页面</span>
+                            </div>
+                        `;
+                    } else if (data.status === 'expired') {
+                        // 二维码过期
+                        clearInterval(checkInterval);
+                        statusContainer.innerHTML = `
+                            <div class="status-expired">
+                                <strong>⚠️ 二维码已过期</strong><br>
+                                <span style="font-size: 14px;">请刷新页面重新获取二维码</span>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('检查状态失败:', error);
+                });
+        }
+
+        // 每2秒检查一次登录状态
+        checkInterval = setInterval(checkLoginStatus, 2000);
+
+        // 页面加载后立即检查一次
+        checkLoginStatus();
+
+        // 页面关闭时清理定时器
+        window.addEventListener('beforeunload', function() {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        });
+    </script>
+</body>
+</html>
