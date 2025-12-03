@@ -19,7 +19,7 @@ from .nodes import (
     ReportFormattingNode
 )
 from .state import State
-from .tools import MediaCrawlerDB, DBResponse, keyword_optimizer, multilingual_sentiment_analyzer
+from .tools import TrainingDataDB, DBResponse
 from .utils import Config, load_config, format_search_results_for_prompt
 
 
@@ -48,24 +48,20 @@ class DeepSearchAgent:
         os.environ["DB_CHARSET"] = self.config.db_charset
         
         # 初始化搜索工具集
-        self.search_agency = MediaCrawlerDB()
-        
-        # 初始化情感分析器
-        self.sentiment_analyzer = multilingual_sentiment_analyzer
-        
+        self.search_agency = TrainingDataDB()
+
         # 初始化节点
         self._initialize_nodes()
-        
+
         # 状态
         self.state = State()
-        
+
         # 确保输出目录存在
         os.makedirs(self.config.output_dir, exist_ok=True)
-        
+
         print(f"Insight Agent已初始化")
         print(f"使用LLM: {self.llm_client.get_model_info()}")
-        print(f"搜索工具集: MediaCrawlerDB (支持5种本地数据库查询工具)")
-        print(f"情感分析: WeiboMultilingualSentiment (支持22种语言的情感分析)")
+        print(f"搜索工具集: TrainingDataDB (支持6种训练数据查询工具)")
     
     def _initialize_llm(self) -> LLMClient:
         """初始化LLM客户端"""
@@ -110,270 +106,125 @@ class DeepSearchAgent:
     
     def execute_search_tool(self, tool_name: str, query: str, **kwargs) -> DBResponse:
         """
-        执行指定的数据库查询工具（集成关键词优化中间件和情感分析）
-        
+        执行指定的训练数据库查询工具
+
         Args:
             tool_name: 工具名称，可选值：
-                - "search_hot_content": 查找热点内容
-                - "search_topic_globally": 全局话题搜索
-                - "search_topic_by_date": 按日期搜索话题
-                - "get_comments_for_topic": 获取话题评论
-                - "search_topic_on_platform": 平台定向搜索
-                - "analyze_sentiment": 对查询结果进行情感分析
-            query: 搜索关键词/话题
-            **kwargs: 额外参数（如start_date, end_date, platform, limit, enable_sentiment等）
-                     enable_sentiment: 是否自动对搜索结果进行情感分析（默认True）
-            
-        Returns:
-            DBResponse对象（可能包含情感分析结果）
-        """
-        print(f"  → 执行数据库查询工具: {tool_name}")
-        
-        # 对于热点内容搜索，不需要关键词优化（因为不需要query参数）
-        if tool_name == "search_hot_content":
-            time_period = kwargs.get("time_period", "week")
-            limit = kwargs.get("limit", 100)
-            response = self.search_agency.search_hot_content(time_period=time_period, limit=limit)
-            
-            # 检查是否需要进行情感分析
-            enable_sentiment = kwargs.get("enable_sentiment", True)
-            if enable_sentiment and response.results and len(response.results) > 0:
-                print(f"  🎭 开始对热点内容进行情感分析...")
-                sentiment_analysis = self._perform_sentiment_analysis(response.results)
-                if sentiment_analysis:
-                    # 将情感分析结果添加到响应的parameters中
-                    response.parameters["sentiment_analysis"] = sentiment_analysis
-                    print(f"  ✅ 情感分析完成")
-            
-            return response
-        
-        # 独立情感分析工具
-        if tool_name == "analyze_sentiment":
-            texts = kwargs.get("texts", query)  # 可以通过texts参数传递，或使用query
-            sentiment_result = self.analyze_sentiment_only(texts)
-            
-            # 构建DBResponse格式的响应
-            return DBResponse(
-                tool_name="analyze_sentiment",
-                parameters={
-                    "texts": texts if isinstance(texts, list) else [texts],
-                    **kwargs
-                },
-                results=[],  # 情感分析不返回搜索结果
-                results_count=0,
-                metadata=sentiment_result
-            )
-        
-        # 对于需要搜索词的工具，使用关键词优化中间件
-        optimized_response = keyword_optimizer.optimize_keywords(
-            original_query=query,
-            context=f"使用{tool_name}工具进行查询"
-        )
-        
-        print(f"  🔍 原始查询: '{query}'")
-        print(f"  ✨ 优化后关键词: {optimized_response.optimized_keywords}")
-        
-        # 使用优化后的关键词进行多次查询并整合结果
-        all_results = []
-        total_count = 0
-        
-        for keyword in optimized_response.optimized_keywords:
-            print(f"    查询关键词: '{keyword}'")
-            
-            try:
-                if tool_name == "search_topic_globally":
-                    # 使用配置文件中的默认值，忽略agent提供的limit_per_table参数
-                    limit_per_table = self.config.default_search_topic_globally_limit_per_table
-                    response = self.search_agency.search_topic_globally(topic=keyword, limit_per_table=limit_per_table)
-                elif tool_name == "search_topic_by_date":
-                    start_date = kwargs.get("start_date")
-                    end_date = kwargs.get("end_date")
-                    # 使用配置文件中的默认值，忽略agent提供的limit_per_table参数
-                    limit_per_table = self.config.default_search_topic_by_date_limit_per_table
-                    if not start_date or not end_date:
-                        raise ValueError("search_topic_by_date工具需要start_date和end_date参数")
-                    response = self.search_agency.search_topic_by_date(topic=keyword, start_date=start_date, end_date=end_date, limit_per_table=limit_per_table)
-                elif tool_name == "get_comments_for_topic":
-                    # 使用配置文件中的默认值，按关键词数量分配，但保证最小值
-                    limit = self.config.default_get_comments_for_topic_limit // len(optimized_response.optimized_keywords)
-                    limit = max(limit, 50)
-                    response = self.search_agency.get_comments_for_topic(topic=keyword, limit=limit)
-                elif tool_name == "search_topic_on_platform":
-                    platform = kwargs.get("platform")
-                    start_date = kwargs.get("start_date")
-                    end_date = kwargs.get("end_date")
-                    # 使用配置文件中的默认值，按关键词数量分配，但保证最小值
-                    limit = self.config.default_search_topic_on_platform_limit // len(optimized_response.optimized_keywords)
-                    limit = max(limit, 30)
-                    if not platform:
-                        raise ValueError("search_topic_on_platform工具需要platform参数")
-                    response = self.search_agency.search_topic_on_platform(platform=platform, topic=keyword, start_date=start_date, end_date=end_date, limit=limit)
-                else:
-                    print(f"    未知的搜索工具: {tool_name}，使用默认全局搜索")
-                    response = self.search_agency.search_topic_globally(topic=keyword, limit_per_table=self.config.default_search_topic_globally_limit_per_table)
-                
-                # 收集结果
-                if response.results:
-                    print(f"     找到 {len(response.results)} 条结果")
-                    all_results.extend(response.results)
-                    total_count += len(response.results)
-                else:
-                    print(f"     未找到结果")
-                    
-            except Exception as e:
-                print(f"      查询'{keyword}'时出错: {str(e)}")
-                continue
-        
-        # 去重和整合结果
-        unique_results = self._deduplicate_results(all_results)
-        print(f"  总计找到 {total_count} 条结果，去重后 {len(unique_results)} 条")
-        
-        # 构建整合后的响应
-        integrated_response = DBResponse(
-            tool_name=f"{tool_name}_optimized",
-            parameters={
-                "original_query": query,
-                "optimized_keywords": optimized_response.optimized_keywords,
-                "optimization_reasoning": optimized_response.reasoning,
-                **kwargs
-            },
-            results=unique_results,
-            results_count=len(unique_results)
-        )
-        
-        # 检查是否需要进行情感分析
-        enable_sentiment = kwargs.get("enable_sentiment", True)
-        if enable_sentiment and unique_results and len(unique_results) > 0:
-            print(f"  🎭 开始对搜索结果进行情感分析...")
-            sentiment_analysis = self._perform_sentiment_analysis(unique_results)
-            if sentiment_analysis:
-                # 将情感分析结果添加到响应的parameters中
-                integrated_response.parameters["sentiment_analysis"] = sentiment_analysis
-                print(f"  ✅ 情感分析完成")
-        
-        return integrated_response
-    
-    def _deduplicate_results(self, results: List) -> List:
-        """
-        去重搜索结果
-        """
-        seen = set()
-        unique_results = []
-        
-        for result in results:
-            # 使用URL或内容作为去重标识
-            identifier = result.url if result.url else result.title_or_content[:100]
-            if identifier not in seen:
-                seen.add(identifier)
-                unique_results.append(result)
-        
-        return unique_results
-    
-    def _perform_sentiment_analysis(self, results: List) -> Optional[Dict[str, Any]]:
-        """
-        对搜索结果执行情感分析
-        
-        Args:
-            results: 搜索结果列表
-            
-        Returns:
-            情感分析结果字典，如果失败则返回None
-        """
-        try:
-            # 初始化情感分析器（如果尚未初始化且未被禁用）
-            if not self.sentiment_analyzer.is_initialized and not self.sentiment_analyzer.is_disabled:
-                print("    初始化情感分析模型...")
-                if not self.sentiment_analyzer.initialize():
-                    print("     情感分析模型初始化失败，将直接透传原始文本")
-            elif self.sentiment_analyzer.is_disabled:
-                print("     情感分析功能已禁用，直接透传原始文本")
+                - "search_recent_trainings": 查询最近N天训练记录
+                - "search_by_date_range": 按日期范围查询训练记录
+                - "get_training_stats": 获取训练统计数据
+                - "search_by_distance_range": 按距离范围查询
+                - "search_by_heart_rate": 按心率区间查询
+                - "get_exercise_type_summary": 按运动类型汇总
+            query: 查询描述（用于日志记录）
+            **kwargs: 额外参数（如days, start_date, end_date, exercise_type, min_distance_km,
+                     max_distance_km, min_avg_hr, max_avg_hr, limit等）
 
-            # 将查询结果转换为字典格式
-            results_dict = []
-            for result in results:
-                result_dict = {
-                    "content": result.title_or_content,
-                    "platform": result.platform,
-                    "author": result.author_nickname,
-                    "url": result.url,
-                    "publish_time": str(result.publish_time) if result.publish_time else None
-                }
-                results_dict.append(result_dict)
-            
-            # 执行情感分析
-            sentiment_analysis = self.sentiment_analyzer.analyze_query_results(
-                query_results=results_dict,
-                text_field="content",
-                min_confidence=0.5
-            )
-            
-            return sentiment_analysis.get("sentiment_analysis")
-            
-        except Exception as e:
-            print(f"    ❌ 情感分析过程中发生错误: {str(e)}")
-            return None
-    
-    def analyze_sentiment_only(self, texts: Union[str, List[str]]) -> Dict[str, Any]:
-        """
-        独立的情感分析工具
-        
-        Args:
-            texts: 单个文本或文本列表
-            
         Returns:
-            情感分析结果
+            DBResponse对象
         """
-        print(f"  → 执行独立情感分析")
-        
+        print(f"  → 执行训练数据查询工具: {tool_name}")
+        print(f"  📋 查询描述: '{query}'")
+
         try:
-            # 初始化情感分析器（如果尚未初始化且未被禁用）
-            if not self.sentiment_analyzer.is_initialized and not self.sentiment_analyzer.is_disabled:
-                print("    初始化情感分析模型...")
-                if not self.sentiment_analyzer.initialize():
-                    print("     情感分析模型初始化失败，将直接透传原始文本")
-            elif self.sentiment_analyzer.is_disabled:
-                print("     情感分析功能已禁用，直接透传原始文本")
-            
-            # 执行分析
-            if isinstance(texts, str):
-                result = self.sentiment_analyzer.analyze_single_text(texts)
-                result_dict = result.__dict__
-                response = {
-                    "success": result.success and result.analysis_performed,
-                    "total_analyzed": 1 if result.analysis_performed and result.success else 0,
-                    "results": [result_dict]
-                }
-                if not result.analysis_performed:
-                    response["success"] = False
-                    response["warning"] = result.error_message or "情感分析功能不可用，已直接返回原始文本"
-                return response
+            if tool_name == "search_recent_trainings":
+                days = kwargs.get("days")
+                if not days:
+                    raise ValueError("search_recent_trainings工具需要days参数")
+
+                exercise_type = kwargs.get("exercise_type")
+                limit = kwargs.get("limit", 50)
+
+                response = self.search_agency.search_recent_trainings(
+                    days=days,
+                    exercise_type=exercise_type,
+                    limit=limit
+                )
+
+            elif tool_name == "search_by_date_range":
+                start_date = kwargs.get("start_date")
+                end_date = kwargs.get("end_date")
+                if not start_date or not end_date:
+                    raise ValueError("search_by_date_range工具需要start_date和end_date参数")
+
+                exercise_type = kwargs.get("exercise_type")
+                limit = kwargs.get("limit", 100)
+
+                response = self.search_agency.search_by_date_range(
+                    start_date=start_date,
+                    end_date=end_date,
+                    exercise_type=exercise_type,
+                    limit=limit
+                )
+
+            elif tool_name == "get_training_stats":
+                start_date = kwargs.get("start_date")
+                end_date = kwargs.get("end_date")
+                exercise_type = kwargs.get("exercise_type")
+
+                response = self.search_agency.get_training_stats(
+                    start_date=start_date,
+                    end_date=end_date,
+                    exercise_type=exercise_type
+                )
+
+            elif tool_name == "search_by_distance_range":
+                min_distance_km = kwargs.get("min_distance_km")
+                if min_distance_km is None:
+                    raise ValueError("search_by_distance_range工具需要min_distance_km参数")
+
+                max_distance_km = kwargs.get("max_distance_km")
+                exercise_type = kwargs.get("exercise_type")
+                limit = kwargs.get("limit", 50)
+
+                response = self.search_agency.search_by_distance_range(
+                    min_distance_km=min_distance_km,
+                    max_distance_km=max_distance_km,
+                    exercise_type=exercise_type,
+                    limit=limit
+                )
+
+            elif tool_name == "search_by_heart_rate":
+                min_avg_hr = kwargs.get("min_avg_hr")
+                if min_avg_hr is None:
+                    raise ValueError("search_by_heart_rate工具需要min_avg_hr参数")
+
+                max_avg_hr = kwargs.get("max_avg_hr")
+                exercise_type = kwargs.get("exercise_type")
+                limit = kwargs.get("limit", 50)
+
+                response = self.search_agency.search_by_heart_rate(
+                    min_avg_hr=min_avg_hr,
+                    max_avg_hr=max_avg_hr,
+                    exercise_type=exercise_type,
+                    limit=limit
+                )
+
+            elif tool_name == "get_exercise_type_summary":
+                start_date = kwargs.get("start_date")
+                end_date = kwargs.get("end_date")
+
+                response = self.search_agency.get_exercise_type_summary(
+                    start_date=start_date,
+                    end_date=end_date
+                )
+
             else:
-                texts_list = list(texts)
-                batch_result = self.sentiment_analyzer.analyze_batch(texts_list, show_progress=True)
-                response = {
-                    "success": batch_result.analysis_performed and batch_result.success_count > 0,
-                    "total_analyzed": batch_result.total_processed if batch_result.analysis_performed else 0,
-                    "success_count": batch_result.success_count,
-                    "failed_count": batch_result.failed_count,
-                    "average_confidence": batch_result.average_confidence if batch_result.analysis_performed else 0.0,
-                    "results": [result.__dict__ for result in batch_result.results]
-                }
-                if not batch_result.analysis_performed:
-                    warning = next(
-                        (r.error_message for r in batch_result.results if r.error_message),
-                        "情感分析功能不可用，已直接返回原始文本"
-                    )
-                    response["success"] = False
-                    response["warning"] = warning
-                return response
-                
+                print(f"    ⚠️ 未知的查询工具: {tool_name}")
+                raise ValueError(f"不支持的工具类型: {tool_name}")
+
+            # 输出查询结果统计
+            if response.results:
+                print(f"  ✅ 找到 {len(response.results)} 条训练记录")
+            else:
+                print(f"  ℹ️  未找到符合条件的训练记录")
+
+            return response
+
         except Exception as e:
-            print(f"    ❌ 情感分析过程中发生错误: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "results": []
-            }
+            print(f"  ❌ 查询执行失败: {str(e)}")
+            raise
+    
     
     def research(self, query: str, save_report: bool = True) -> str:
         """
@@ -462,7 +313,7 @@ class DeepSearchAgent:
         print("  - 生成搜索查询...")
         search_output = self.first_search_node.run(search_input)
         search_query = search_output["search_query"]
-        search_tool = search_output.get("search_tool", "search_topic_globally")  # 默认工具
+        search_tool = search_output.get("search_tool", "search_recent_trainings")  # 默认工具
         reasoning = search_output["reasoning"]
         
         print(f"  - 搜索查询: {search_query}")
@@ -471,58 +322,96 @@ class DeepSearchAgent:
         
         # 执行搜索
         print("  - 执行数据库查询...")
-        
-        # 处理特殊参数
+
+        # 处理训练数据工具参数
         search_kwargs = {}
-        
-        # 处理需要日期的工具
-        if search_tool in ["search_topic_by_date", "search_topic_on_platform"]:
+
+        # search_recent_trainings: 需要days参数
+        if search_tool == "search_recent_trainings":
+            days = search_output.get("days")
+            if not days:
+                print(f"    ⚠️ search_recent_trainings工具缺少days参数,默认使用30天")
+                days = 30
+            search_kwargs["days"] = days
+            search_kwargs["exercise_type"] = search_output.get("exercise_type")
+            search_kwargs["limit"] = search_output.get("limit", 50)
+            print(f"  - 查询最近 {days} 天训练记录")
+
+        # search_by_date_range: 需要start_date和end_date
+        elif search_tool == "search_by_date_range":
             start_date = search_output.get("start_date")
             end_date = search_output.get("end_date")
-            
+
             if start_date and end_date:
-                # 验证日期格式
                 if self._validate_date_format(start_date) and self._validate_date_format(end_date):
                     search_kwargs["start_date"] = start_date
                     search_kwargs["end_date"] = end_date
+                    search_kwargs["exercise_type"] = search_output.get("exercise_type")
+                    search_kwargs["limit"] = search_output.get("limit", 100)
                     print(f"  - 时间范围: {start_date} 到 {end_date}")
                 else:
-                    print(f"    日期格式错误（应为YYYY-MM-DD），改用全局搜索")
-                    print(f"      提供的日期: start_date={start_date}, end_date={end_date}")
-                    search_tool = "search_topic_globally"
-            elif search_tool == "search_topic_by_date":
-                print(f"    search_topic_by_date工具缺少时间参数，改用全局搜索")
-                search_tool = "search_topic_globally"
-        
-        # 处理需要平台参数的工具
-        if search_tool == "search_topic_on_platform":
-            platform = search_output.get("platform")
-            if platform:
-                search_kwargs["platform"] = platform
-                print(f"  - 指定平台: {platform}")
+                    print(f"    ⚠️ 日期格式错误,改用search_recent_trainings")
+                    search_tool = "search_recent_trainings"
+                    search_kwargs = {"days": 30, "limit": 50}
             else:
-                print(f"    search_topic_on_platform工具缺少平台参数，改用全局搜索")
-                search_tool = "search_topic_globally"
-        
-        # 处理限制参数，使用配置文件中的默认值而不是agent提供的参数
-        if search_tool == "search_hot_content":
-            time_period = search_output.get("time_period", "week")
-            limit = self.config.default_search_hot_content_limit
-            search_kwargs["time_period"] = time_period
-            search_kwargs["limit"] = limit
-        elif search_tool in ["search_topic_globally", "search_topic_by_date"]:
-            if search_tool == "search_topic_globally":
-                limit_per_table = self.config.default_search_topic_globally_limit_per_table
-            else:  # search_topic_by_date
-                limit_per_table = self.config.default_search_topic_by_date_limit_per_table
-            search_kwargs["limit_per_table"] = limit_per_table
-        elif search_tool in ["get_comments_for_topic", "search_topic_on_platform"]:
-            if search_tool == "get_comments_for_topic":
-                limit = self.config.default_get_comments_for_topic_limit
-            else:  # search_topic_on_platform
-                limit = self.config.default_search_topic_on_platform_limit
-            search_kwargs["limit"] = limit
-        
+                print(f"    ⚠️ 缺少日期参数,改用search_recent_trainings")
+                search_tool = "search_recent_trainings"
+                search_kwargs = {"days": 30, "limit": 50}
+
+        # get_training_stats: 可选start_date和end_date
+        elif search_tool == "get_training_stats":
+            start_date = search_output.get("start_date")
+            end_date = search_output.get("end_date")
+            if start_date and self._validate_date_format(start_date):
+                search_kwargs["start_date"] = start_date
+            if end_date and self._validate_date_format(end_date):
+                search_kwargs["end_date"] = end_date
+            search_kwargs["exercise_type"] = search_output.get("exercise_type")
+            print(f"  - 获取训练统计数据")
+
+        # search_by_distance_range: 需要min_distance_km
+        elif search_tool == "search_by_distance_range":
+            min_distance_km = search_output.get("min_distance_km")
+            if min_distance_km is not None:
+                search_kwargs["min_distance_km"] = min_distance_km
+                search_kwargs["max_distance_km"] = search_output.get("max_distance_km")
+                search_kwargs["exercise_type"] = search_output.get("exercise_type")
+                search_kwargs["limit"] = search_output.get("limit", 50)
+                print(f"  - 距离范围: {min_distance_km}km+")
+            else:
+                print(f"    ⚠️ 缺少min_distance_km参数,改用search_recent_trainings")
+                search_tool = "search_recent_trainings"
+                search_kwargs = {"days": 30, "limit": 50}
+
+        # search_by_heart_rate: 需要min_avg_hr
+        elif search_tool == "search_by_heart_rate":
+            min_avg_hr = search_output.get("min_avg_hr")
+            if min_avg_hr is not None:
+                search_kwargs["min_avg_hr"] = min_avg_hr
+                search_kwargs["max_avg_hr"] = search_output.get("max_avg_hr")
+                search_kwargs["exercise_type"] = search_output.get("exercise_type")
+                search_kwargs["limit"] = search_output.get("limit", 50)
+                print(f"  - 心率范围: {min_avg_hr}bpm+")
+            else:
+                print(f"    ⚠️ 缺少min_avg_hr参数,改用search_recent_trainings")
+                search_tool = "search_recent_trainings"
+                search_kwargs = {"days": 30, "limit": 50}
+
+        # get_exercise_type_summary: 可选start_date和end_date
+        elif search_tool == "get_exercise_type_summary":
+            start_date = search_output.get("start_date")
+            end_date = search_output.get("end_date")
+            if start_date and self._validate_date_format(start_date):
+                search_kwargs["start_date"] = start_date
+            if end_date and self._validate_date_format(end_date):
+                search_kwargs["end_date"] = end_date
+            print(f"  - 按运动类型汇总")
+
+        else:
+            print(f"    ⚠️ 未知工具 {search_tool},使用search_recent_trainings")
+            search_tool = "search_recent_trainings"
+            search_kwargs = {"days": 30, "limit": 50}
+
         search_response = self.execute_search_tool(search_tool, search_query, **search_kwargs)
         
         # 转换为兼容格式
@@ -593,7 +482,7 @@ class DeepSearchAgent:
             # 生成反思搜索查询
             reflection_output = self.reflection_node.run(reflection_input)
             search_query = reflection_output["search_query"]
-            search_tool = reflection_output.get("search_tool", "search_topic_globally")  # 默认工具
+            search_tool = reflection_output.get("search_tool", "search_recent_trainings")  # 默认工具
             reasoning = reflection_output["reasoning"]
             
             print(f"    反思查询: {search_query}")
@@ -601,60 +490,95 @@ class DeepSearchAgent:
             print(f"    反思推理: {reasoning}")
             
             # 执行反思搜索
-            # 处理特殊参数
+            # 处理训练数据工具参数
             search_kwargs = {}
-            
-            # 处理需要日期的工具
-            if search_tool in ["search_topic_by_date", "search_topic_on_platform"]:
+
+            # search_recent_trainings: 需要days参数
+            if search_tool == "search_recent_trainings":
+                days = reflection_output.get("days")
+                if not days:
+                    print(f"      ⚠️ search_recent_trainings工具缺少days参数,默认使用30天")
+                    days = 30
+                search_kwargs["days"] = days
+                search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
+                search_kwargs["limit"] = reflection_output.get("limit", 50)
+                print(f"    查询最近 {days} 天训练记录")
+
+            # search_by_date_range: 需要start_date和end_date
+            elif search_tool == "search_by_date_range":
                 start_date = reflection_output.get("start_date")
                 end_date = reflection_output.get("end_date")
-                
+
                 if start_date and end_date:
-                    # 验证日期格式
                     if self._validate_date_format(start_date) and self._validate_date_format(end_date):
                         search_kwargs["start_date"] = start_date
                         search_kwargs["end_date"] = end_date
+                        search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
+                        search_kwargs["limit"] = reflection_output.get("limit", 100)
                         print(f"    时间范围: {start_date} 到 {end_date}")
                     else:
-                        print(f"      日期格式错误（应为YYYY-MM-DD），改用全局搜索")
-                        print(f"        提供的日期: start_date={start_date}, end_date={end_date}")
-                        search_tool = "search_topic_globally"
-                elif search_tool == "search_topic_by_date":
-                    print(f"      search_topic_by_date工具缺少时间参数，改用全局搜索")
-                    search_tool = "search_topic_globally"
-            
-            # 处理需要平台参数的工具
-            if search_tool == "search_topic_on_platform":
-                platform = reflection_output.get("platform")
-                if platform:
-                    search_kwargs["platform"] = platform
-                    print(f"    指定平台: {platform}")
+                        print(f"      ⚠️ 日期格式错误,改用search_recent_trainings")
+                        search_tool = "search_recent_trainings"
+                        search_kwargs = {"days": 30, "limit": 50}
                 else:
-                    print(f"      search_topic_on_platform工具缺少平台参数，改用全局搜索")
-                    search_tool = "search_topic_globally"
-            
-            # 处理限制参数
-            if search_tool == "search_hot_content":
-                time_period = reflection_output.get("time_period", "week")
-                # 使用配置文件中的默认值，不允许agent控制limit参数
-                limit = self.config.default_search_hot_content_limit
-                search_kwargs["time_period"] = time_period
-                search_kwargs["limit"] = limit
-            elif search_tool in ["search_topic_globally", "search_topic_by_date"]:
-                # 使用配置文件中的默认值，不允许agent控制limit_per_table参数
-                if search_tool == "search_topic_globally":
-                    limit_per_table = self.config.default_search_topic_globally_limit_per_table
-                else:  # search_topic_by_date
-                    limit_per_table = self.config.default_search_topic_by_date_limit_per_table
-                search_kwargs["limit_per_table"] = limit_per_table
-            elif search_tool in ["get_comments_for_topic", "search_topic_on_platform"]:
-                # 使用配置文件中的默认值，不允许agent控制limit参数
-                if search_tool == "get_comments_for_topic":
-                    limit = self.config.default_get_comments_for_topic_limit
-                else:  # search_topic_on_platform
-                    limit = self.config.default_search_topic_on_platform_limit
-                search_kwargs["limit"] = limit
-            
+                    print(f"      ⚠️ 缺少日期参数,改用search_recent_trainings")
+                    search_tool = "search_recent_trainings"
+                    search_kwargs = {"days": 30, "limit": 50}
+
+            # get_training_stats: 可选start_date和end_date
+            elif search_tool == "get_training_stats":
+                start_date = reflection_output.get("start_date")
+                end_date = reflection_output.get("end_date")
+                if start_date and self._validate_date_format(start_date):
+                    search_kwargs["start_date"] = start_date
+                if end_date and self._validate_date_format(end_date):
+                    search_kwargs["end_date"] = end_date
+                search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
+                print(f"    获取训练统计数据")
+
+            # search_by_distance_range: 需要min_distance_km
+            elif search_tool == "search_by_distance_range":
+                min_distance_km = reflection_output.get("min_distance_km")
+                if min_distance_km is not None:
+                    search_kwargs["min_distance_km"] = min_distance_km
+                    search_kwargs["max_distance_km"] = reflection_output.get("max_distance_km")
+                    search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
+                    search_kwargs["limit"] = reflection_output.get("limit", 50)
+                    print(f"    距离范围: {min_distance_km}km+")
+                else:
+                    print(f"      ⚠️ 缺少min_distance_km参数,改用search_recent_trainings")
+                    search_tool = "search_recent_trainings"
+                    search_kwargs = {"days": 30, "limit": 50}
+
+            # search_by_heart_rate: 需要min_avg_hr
+            elif search_tool == "search_by_heart_rate":
+                min_avg_hr = reflection_output.get("min_avg_hr")
+                if min_avg_hr is not None:
+                    search_kwargs["min_avg_hr"] = min_avg_hr
+                    search_kwargs["max_avg_hr"] = reflection_output.get("max_avg_hr")
+                    search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
+                    search_kwargs["limit"] = reflection_output.get("limit", 50)
+                    print(f"    心率范围: {min_avg_hr}bpm+")
+                else:
+                    print(f"      ⚠️ 缺少min_avg_hr参数,改用search_recent_trainings")
+                    search_tool = "search_recent_trainings"
+                    search_kwargs = {"days": 30, "limit": 50}
+
+            # get_exercise_type_summary: 可选start_date和end_date
+            elif search_tool == "get_exercise_type_summary":
+                start_date = reflection_output.get("start_date")
+                end_date = reflection_output.get("end_date")
+                if start_date and self._validate_date_format(start_date):
+                    search_kwargs["start_date"] = start_date
+                if end_date and self._validate_date_format(end_date):
+                    search_kwargs["end_date"] = end_date
+                print(f"    按运动类型汇总")
+
+            else:
+                print(f"      ⚠️ 未知工具 {search_tool},使用search_recent_trainings")
+                search_tool = "search_recent_trainings"
+                search_kwargs = {"days": 30, "limit": 50}
+
             search_response = self.execute_search_tool(search_tool, search_query, **search_kwargs)
             
             # 转换为兼容格式
