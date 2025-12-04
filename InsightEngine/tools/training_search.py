@@ -109,9 +109,10 @@ class TrainingDataDB:
         """计算配速(秒/公里)"""
         if not distance_meters or distance_meters <= 0:
             return None
-        # 将distance_meters转换为float以处理Decimal类型
+        # 将distance_meters和duration_seconds转换为float以处理Decimal类型
         distance_km = float(distance_meters) / 1000.0
-        return duration_seconds / distance_km
+        duration = float(duration_seconds)
+        return duration / distance_km
 
     def _row_to_record(self, row: Dict[str, Any]) -> TrainingRecord:
         """将数据库行转换为TrainingRecord对象"""
@@ -315,7 +316,8 @@ class TrainingDataDB:
         if stats['total_distance'] and stats['total_distance'] > 0:
             # 将Decimal转换为float以避免类型错误
             total_distance_km = float(stats['total_distance']) / 1000.0
-            avg_pace = stats['total_duration'] / total_distance_km
+            total_duration = float(stats['total_duration']) if stats['total_duration'] else 0.0
+            avg_pace = total_duration / total_distance_km
             stats['avg_pace_per_km'] = round(avg_pace, 2)
         else:
             stats['avg_pace_per_km'] = None
@@ -513,7 +515,7 @@ def print_response_summary(response: DBResponse):
         print(f"找到 {response.results_count} 条训练记录。")
         print("--- 前5条结果示例 ---")
         for i, rec in enumerate(response.results[:5]):
-            distance_km = f"{rec.distance_meters/1000:.2f}km" if rec.distance_meters else "N/A"
+            distance_km = f"{float(rec.distance_meters)/1000:.2f}km" if rec.distance_meters else "N/A"
             pace_str = f"{int(rec.pace_per_km//60)}'{int(rec.pace_per_km%60):02d}\"" if rec.pace_per_km else "N/A"
             print(
                 f"{i+1}. [{rec.exercise_type}] {rec.start_time.strftime('%Y-%m-%d %H:%M')}\n"
