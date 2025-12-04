@@ -343,3 +343,9 @@ CLAUDE.md
 # 生成的HTML报告
 reports/
 */reports/
+
+# Agent生成的报告文件夹
+final_reports/
+insight_engine_streamlit_reports/
+media_engine_streamlit_reports/
+query_engine_streamlit_reports/
