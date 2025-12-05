@@ -184,7 +184,7 @@ def generate_report():
         
         # 获取请求参数
         data = request.get_json() or {}
-        query = data.get('query', '智能舆情分析报告')
+        query = data.get('query', '最终训练计划报告')
         custom_template = data.get('custom_template', '')
         
         # 清空日志文件

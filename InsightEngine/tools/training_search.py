@@ -101,8 +101,20 @@ class TrainingDataDB:
             return None
         try:
             data = json.loads(hr_json)
-            return [int(x) for x in data if x]
-        except (json.JSONDecodeError, ValueError):
+            # 检查data是否为None或不可迭代
+            if data is None or not isinstance(data, (list, tuple)):
+                return None
+            # 过滤并转换有效的心率值
+            result = []
+            for x in data:
+                if x is not None and x != '':
+                    try:
+                        result.append(int(x))
+                    except (ValueError, TypeError):
+                        # 跳过无法转换为整数的值
+                        continue
+            return result if result else None
+        except (json.JSONDecodeError, ValueError, TypeError):
             return None
 
     def _calculate_pace(self, duration_seconds: int, distance_meters: Optional[float]) -> Optional[float]:

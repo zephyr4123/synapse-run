@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>训练数据管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        table th,
+        table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        table tbody tr {
+            transition: background 0.3s;
+        }
+
+        table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .pagination button {
+            padding: 10px 16px;
+        }
+
+        .pagination span {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-box input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏃 训练数据管理系统</h1>
+            <p>基于SQLAlchemy ORM的训练数据录入与管理平台</p>
+        </div>
+
+        <div class="content">
+            <div class="alert alert-success" id="successAlert"></div>
+            <div class="alert alert-error" id="errorAlert"></div>
+
+            <div class="toolbar">
+                <button class="btn btn-primary" onclick="showAddModal()">
+                    ➕ 添加训练记录
+                </button>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="搜索运动类型、用户ID...">
+                    <button class="btn btn-secondary" onclick="searchRecords()">🔍 搜索</button>
+                    <button class="btn btn-secondary" onclick="loadRecords()">🔄 刷新</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户ID</th>
+                            <th>运动类型</th>
+                            <th>开始时间</th>
+                            <th>时长(秒)</th>
+                            <th>距离(米)</th>
+                            <th>卡路里</th>
+                            <th>平均心率</th>
+                            <th>最大心率</th>
+                            <th>数据来源</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <tr>
+                            <td colspan="11" style="text-align: center; padding: 40px;">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="pagination">
+                <button class="btn btn-secondary" onclick="previousPage()">⬅️ 上一页</button>
+                <span id="pageInfo">第 1 页</span>
+                <button class="btn btn-secondary" onclick="nextPage()">下一页 ➡️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑记录模态框 -->
+    <div class="modal" id="recordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">添加训练记录</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+
+            <form id="recordForm" onsubmit="submitRecord(event)">
+                <input type="hidden" id="recordId">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>用户ID <span class="required">*</span></label>
+                        <input type="text" id="userId" value="default_user" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>运动类型 <span class="required">*</span></label>
+                        <select id="exerciseType" required>
+                            <option value="">-- 请选择 --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>开始时间 <span class="required">*</span></label>
+                        <input type="datetime-local" id="startTime" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>结束时间 <span class="required">*</span></label>
+                        <input type="datetime-local" id="endTime" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>持续时长(秒) <span class="required">*</span></label>
+                        <input type="number" id="durationSeconds" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>距离(米)</label>
+                        <input type="number" id="distanceMeters" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>消耗卡路里</label>
+                        <input type="number" id="calories" min="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>数据来源</label>
+                        <select id="dataSource">
+                            <option value="manual_import">手动导入</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>平均心率</label>
+                        <input type="number" id="avgHeartRate" min="30" max="220">
+                    </div>
+
+                    <div class="form-group">
+                        <label>最大心率</label>
+                        <input type="number" id="maxHeartRate" min="30" max="220">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>心率数据 (JSON格式数组,可选)</label>
+                    <textarea id="heartRateData" rows="4" placeholder='例: ["120","125","130","128"]'></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let editingRecordId = null;
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExerciseTypes();
+            loadDataSources();
+            loadRecords();
+        });
+
+        // 加载运动类型
+        async function loadExerciseTypes() {
+            try {
+                const response = await fetch('/training/api/exercise_types');
+                const result = await response.json();
+                if (result.success) {
+                    const select = document.getElementById('exerciseType');
+                    select.innerHTML = '<option value="">-- 请选择 --</option>';
+                    result.data.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type;
+                        option.textContent = type;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载运动类型失败:', error);
+            }
+        }
+
+        // 加载数据来源
+        async function loadDataSources() {
+            try {
+                const response = await fetch('/training/api/data_sources');
+                const result = await response.json();
+                if (result.success) {
+                    const select = document.getElementById('dataSource');
+                    select.innerHTML = '';
+                    result.data.forEach(source => {
+                        const option = document.createElement('option');
+                        option.value = source;
+                        option.textContent = source;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载数据来源失败:', error);
+            }
+        }
+
+        // 加载训练记录
+        async function loadRecords() {
+            try {
+                const response = await fetch(`/training/api/records?page=${currentPage}&per_page=20`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const tbody = document.getElementById('recordsTableBody');
+                    tbody.innerHTML = '';
+
+                    if (result.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 40px;">暂无数据</td></tr>';
+                        return;
+                    }
+
+                    result.data.forEach(record => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${record.id}</td>
+                            <td>${record.user_id}</td>
+                            <td>${record.exercise_type}</td>
+                            <td>${record.start_time}</td>
+                            <td>${record.duration_seconds}</td>
+                            <td>${record.distance_meters || '-'}</td>
+                            <td>${record.calories || '-'}</td>
+                            <td>${record.avg_heart_rate || '-'}</td>
+                            <td>${record.max_heart_rate || '-'}</td>
+                            <td>${record.data_source}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-secondary" onclick="editRecord(${record.id})">✏️ 编辑</button>
+                                    <button class="btn btn-danger" onclick="deleteRecord(${record.id})">🗑️ 删除</button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    // 更新分页信息
+                    totalPages = Math.ceil(result.total / result.per_page);
+                    document.getElementById('pageInfo').textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页`;
+                }
+            } catch (error) {
+                showError('加载数据失败: ' + error.message);
+            }
+        }
+
+        // 显示添加模态框
+        function showAddModal() {
+            editingRecordId = null;
+            document.getElementById('modalTitle').textContent = '添加训练记录';
+            document.getElementById('recordForm').reset();
+            document.getElementById('recordId').value = '';
+            document.getElementById('userId').value = 'default_user';
+            document.getElementById('recordModal').classList.add('active');
+        }
+
+        // 编辑记录
+        async function editRecord(id) {
+            try {
+                const response = await fetch(`/training/api/record/${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    editingRecordId = id;
+                    const record = result.data;
+
+                    document.getElementById('modalTitle').textContent = '编辑训练记录';
+                    document.getElementById('recordId').value = record.id;
+                    document.getElementById('userId').value = record.user_id;
+                    document.getElementById('exerciseType').value = record.exercise_type;
+                    document.getElementById('startTime').value = record.start_time.replace(' ', 'T');
+                    document.getElementById('endTime').value = record.end_time.replace(' ', 'T');
+                    document.getElementById('durationSeconds').value = record.duration_seconds;
+                    document.getElementById('distanceMeters').value = record.distance_meters || '';
+                    document.getElementById('calories').value = record.calories || '';
+                    document.getElementById('avgHeartRate').value = record.avg_heart_rate || '';
+                    document.getElementById('maxHeartRate').value = record.max_heart_rate || '';
+                    document.getElementById('heartRateData').value = record.heart_rate_data || '';
+                    document.getElementById('dataSource').value = record.data_source;
+
+                    document.getElementById('recordModal').classList.add('active');
+                }
+            } catch (error) {
+                showError('加载记录失败: ' + error.message);
+            }
+        }
+
+        // 提交记录
+        async function submitRecord(event) {
+            event.preventDefault();
+
+            const data = {
+                user_id: document.getElementById('userId').value,
+                exercise_type: document.getElementById('exerciseType').value,
+                start_time: document.getElementById('startTime').value.replace('T', ' ') + ':00',
+                end_time: document.getElementById('endTime').value.replace('T', ' ') + ':00',
+                duration_seconds: document.getElementById('durationSeconds').value,
+                distance_meters: document.getElementById('distanceMeters').value || null,
+                calories: document.getElementById('calories').value || null,
+                avg_heart_rate: document.getElementById('avgHeartRate').value || null,
+                max_heart_rate: document.getElementById('maxHeartRate').value || null,
+                heart_rate_data: document.getElementById('heartRateData').value || null,
+                data_source: document.getElementById('dataSource').value
+            };
+
+            try {
+                let url = '/training/api/record';
+                let method = 'POST';
+
+                if (editingRecordId) {
+                    url = `/training/api/record/${editingRecordId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess(result.message);
+                    closeModal();
+                    loadRecords();
+                } else {
+                    showError(result.message);
+                }
+            } catch (error) {
+                showError('操作失败: ' + error.message);
+            }
+        }
+
+        // 删除记录
+        async function deleteRecord(id) {
+            if (!confirm('确定要删除这条记录吗?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/training/api/record/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess('删除成功');
+                    loadRecords();
+                } else {
+                    showError(result.message);
+                }
+            } catch (error) {
+                showError('删除失败: ' + error.message);
+            }
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('recordModal').classList.remove('active');
+            editingRecordId = null;
+        }
+
+        // 搜索记录
+        function searchRecords() {
+            const searchText = document.getElementById('searchInput').value;
+            // 这里可以实现搜索功能
+            alert('搜索功能待实现: ' + searchText);
+        }
+
+        // 上一页
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadRecords();
+            }
+        }
+
+        // 下一页
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadRecords();
+            }
+        }
+
+        // 显示成功消息
+        function showSuccess(message) {
+            const alert = document.getElementById('successAlert');
+            alert.textContent = '✅ ' + message;
+            alert.classList.add('active');
+            setTimeout(() => {
+                alert.classList.remove('active');
+            }, 3000);
+        }
+
+        // 显示错误消息
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            alert.textContent = '❌ ' + message;
+            alert.classList.add('active');
+            setTimeout(() => {
+                alert.classList.remove('active');
+            }, 5000);
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('recordModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

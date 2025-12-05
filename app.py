@@ -26,6 +26,14 @@ except ImportError as e:
     print(f"ReportEngine导入失败: {e}")
     REPORT_ENGINE_AVAILABLE = False
 
+# 导入训练数据路由
+try:
+    from routes import training_data_bp
+    TRAINING_DATA_AVAILABLE = True
+except ImportError as e:
+    print(f"训练数据路由导入失败: {e}")
+    TRAINING_DATA_AVAILABLE = False
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'Dedicated-to-creating-a-concise-and-versatile-public-opinion-analysis-platform'
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -36,6 +44,13 @@ if REPORT_ENGINE_AVAILABLE:
     print("ReportEngine接口已注册")
 else:
     print("ReportEngine不可用，跳过接口注册")
+
+# 注册训练数据管理 Blueprint
+if TRAINING_DATA_AVAILABLE:
+    app.register_blueprint(training_data_bp)
+    print("训练数据管理接口已注册: /training")
+else:
+    print("训练数据路由不可用，跳过接口注册")
 
 # 设置UTF-8编码环境
 os.environ['PYTHONIOENCODING'] = 'utf-8'
