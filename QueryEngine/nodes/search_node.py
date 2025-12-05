@@ -15,6 +15,7 @@ from ..utils.text_processing import (
     extract_clean_response,
     fix_incomplete_json
 )
+from utils.time_helper import get_current_time_context
 
 
 class FirstSearchNode(BaseNode):
@@ -63,9 +64,13 @@ class FirstSearchNode(BaseNode):
                 message = json.dumps(input_data, ensure_ascii=False)
             
             self.log_info("正在生成首次搜索查询")
-            
+
+            # 在message前拼接时间信息
+            time_context = get_current_time_context()
+            enhanced_message = f"{time_context}\n\n---\n\n{message}"
+
             # 调用LLM
-            response = self.llm_client.invoke(SYSTEM_PROMPT_FIRST_SEARCH, message)
+            response = self.llm_client.invoke(SYSTEM_PROMPT_FIRST_SEARCH, enhanced_message)
             
             # 处理响应
             processed_response = self.process_output(response)
@@ -198,9 +203,13 @@ class ReflectionNode(BaseNode):
                 message = json.dumps(input_data, ensure_ascii=False)
             
             self.log_info("正在进行反思并生成新搜索查询")
-            
+
+            # 在message前拼接时间信息
+            time_context = get_current_time_context()
+            enhanced_message = f"{time_context}\n\n---\n\n{message}"
+
             # 调用LLM
-            response = self.llm_client.invoke(SYSTEM_PROMPT_REFLECTION, message)
+            response = self.llm_client.invoke(SYSTEM_PROMPT_REFLECTION, enhanced_message)
             
             # 处理响应
             processed_response = self.process_output(response)

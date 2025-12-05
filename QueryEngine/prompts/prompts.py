@@ -147,9 +147,19 @@ SYSTEM_PROMPT_REPORT_STRUCTURE = f"""
 {json.dumps(output_schema_report_structure, indent=2, ensure_ascii=False)}
 </OUTPUT JSON SCHEMA>
 
-标题和内容属性将用于后续搜索和分析。
-确保输出是一个符合上述输出JSON模式定义的JSON对象。
-只返回JSON对象,不要有解释或额外文本。
+**关键约束**:
+1. 你必须返回**符合上述Schema的实际数据**,而不是Schema定义本身
+2. 返回格式应该是一个**JSON数组**,包含3-5个段落对象
+3. 每个段落对象必须包含"title"和"content"两个字符串字段
+4. 示例(仅供参考,不要原样复制):
+   ```json
+   [
+     {{"title": "间歇跑训练方法", "content": "如何通过间歇跑提升配速和无氧能力"}},
+     {{"title": "马拉松配速策略", "content": "全马破4的科学配速分配方案"}}
+   ]
+   ```
+
+确保输出是一个符合上述OUTPUT JSON SCHEMA的**数据实例**,只返回JSON数组,不要有解释或额外文本。
 """
 
 # 每个段落第一次搜索的系统提示词
@@ -209,8 +219,20 @@ SYSTEM_PROMPT_FIRST_SEARCH = f"""
 {json.dumps(output_schema_first_search, indent=2, ensure_ascii=False)}
 </OUTPUT JSON SCHEMA>
 
-确保输出是一个符合上述输出JSON模式定义的JSON对象。
-只返回JSON对象,不要有解释或额外文本。
+**关键约束**:
+1. 你必须返回**符合上述Schema的实际数据**,而不是Schema定义本身
+2. 返回格式应该是一个**JSON对象**,包含"search_query"、"search_tool"、"reasoning"三个必需字段
+3. "search_query"是实际的搜索查询词,"search_tool"是选择的工具名,"reasoning"是你的推理过程
+4. 示例(仅供参考,不要原样复制):
+   ```json
+   {{
+     "search_query": "间歇跑训练方法 心率控制",
+     "search_tool": "basic_search_news",
+     "reasoning": "需要查找间歇跑的具体训练方法和心率控制指导,基础搜索工具最合适"
+   }}
+   ```
+
+确保输出是一个符合上述OUTPUT JSON SCHEMA的**数据实例**,只返回JSON对象,不要有解释或额外文本。
 """
 
 # 每个段落第一次总结的系统提示词
@@ -281,8 +303,12 @@ SYSTEM_PROMPT_FIRST_SUMMARY = f"""
 {json.dumps(output_schema_first_summary, indent=2, ensure_ascii=False)}
 </OUTPUT JSON SCHEMA>
 
-确保输出是一个符合上述输出JSON模式定义的JSON对象。
-只返回JSON对象,不要有解释或额外文本。
+**关键约束**:
+1. 你必须返回**符合上述Schema的实际数据**,而不是Schema定义本身
+2. 返回格式应该是一个**JSON对象**,包含"paragraph_latest_state"字段
+3. "paragraph_latest_state"的值是你撰写的600-800字训练方法分析内容
+
+确保输出是一个符合上述OUTPUT JSON SCHEMA的**数据实例**,只返回JSON对象,不要有解释或额外文本。
 """
 
 # 反思(Reflect)的系统提示词
@@ -324,8 +350,12 @@ SYSTEM_PROMPT_REFLECTION = f"""
 {json.dumps(output_schema_reflection, indent=2, ensure_ascii=False)}
 </OUTPUT JSON SCHEMA>
 
-确保输出是一个符合上述输出JSON模式定义的JSON对象。
-只返回JSON对象,不要有解释或额外文本。
+**关键约束**:
+1. 你必须返回**符合上述Schema的实际数据**,而不是Schema定义本身
+2. 返回格式应该是一个**JSON对象**,包含"search_query"、"search_tool"、"reasoning"三个必需字段
+3. "search_query"是补充搜索的查询词,"search_tool"是选择的工具名,"reasoning"是你的反思推理
+
+确保输出是一个符合上述OUTPUT JSON SCHEMA的**数据实例**,只返回JSON对象,不要有解释或额外文本。
 """
 
 # 总结反思的系统提示词
@@ -385,8 +415,12 @@ SYSTEM_PROMPT_REFLECTION_SUMMARY = f"""
 {json.dumps(output_schema_reflection_summary, indent=2, ensure_ascii=False)}
 </OUTPUT JSON SCHEMA>
 
-确保输出是一个符合上述输出JSON模式定义的JSON对象。
-只返回JSON对象,不要有解释或额外文本。
+**关键约束**:
+1. 你必须返回**符合上述Schema的实际数据**,而不是Schema定义本身
+2. 返回格式应该是一个**JSON对象**,包含"updated_paragraph_latest_state"字段
+3. "updated_paragraph_latest_state"的值是你补充更新后的800-1000字训练方法分析内容
+
+确保输出是一个符合上述OUTPUT JSON SCHEMA的**数据实例**,只返回JSON对象,不要有解释或额外文本。
 """
 
 # 最终研究报告格式化的系统提示词

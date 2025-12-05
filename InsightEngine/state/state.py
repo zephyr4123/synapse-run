@@ -17,6 +17,7 @@ class Search:
     title: str = ""                    # 搜索结果标题
     content: str = ""                  # 搜索返回的内容
     score: Optional[float] = None      # 相关度评分
+    platform: str = "训练记录数据库"     # 数据来源平台
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     
     def to_dict(self) -> Dict[str, Any]:
@@ -27,6 +28,7 @@ class Search:
             "title": self.title,
             "content": self.content,
             "score": self.score,
+            "platform": self.platform,
             "timestamp": self.timestamp
         }
     
@@ -39,6 +41,7 @@ class Search:
             title=data.get("title", ""),
             content=data.get("content", ""),
             score=data.get("score"),
+            platform=data.get("platform", "训练记录数据库"),
             timestamp=data.get("timestamp", datetime.now().isoformat())
         )
 
@@ -63,7 +66,8 @@ class Research:
                 url=result.get("url", ""),
                 title=result.get("title", ""),
                 content=result.get("content", ""),
-                score=result.get("score")
+                score=result.get("score"),
+                platform=result.get("platform", "训练记录数据库")
             )
             self.add_search(search)
     

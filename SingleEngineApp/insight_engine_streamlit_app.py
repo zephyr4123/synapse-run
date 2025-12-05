@@ -44,7 +44,7 @@ from config import (
 def main():
     """主函数"""
     st.set_page_config(
-        page_title="Sports Scientist - 运动科学家",
+        page_title="运动科学家",
         page_icon="🔬",
         layout="wide"
     )
