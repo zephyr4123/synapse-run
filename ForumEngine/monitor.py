@@ -1,5 +1,5 @@
 """
-日志监控器 - 实时监控三个log文件中的SummaryNode输出
+总教练协调器 - 实时收集三个Agent的分析报告,统筹决策并引导团队方向
 """
 
 import os
@@ -12,42 +12,42 @@ import json
 from typing import Dict, Optional, List
 from threading import Lock
 
-# 导入论坛主持人模块
+# 导入总教练模块
 try:
     from .llm_host import generate_host_speech
     HOST_AVAILABLE = True
 except ImportError:
-    print("ForumEngine: 论坛主持人模块未找到，将以纯监控模式运行")
+    print("ForumEngine: 总教练模块未找到，将以纯协调模式运行")
     HOST_AVAILABLE = False
 
 class LogMonitor:
-    """基于文件变化的智能日志监控器"""
-   
+    """总教练协调系统 - 智能收集和统筹三个Agent的分析成果"""
+
     def __init__(self, log_dir: str = "logs"):
-        """初始化日志监控器"""
+        """初始化总教练协调系统"""
         self.log_dir = Path(log_dir)
         self.forum_log_file = self.log_dir / "forum.log"
        
-        # 要监控的日志文件
+        # 三个Agent的分析日志文件
         self.monitored_logs = {
             'insight': self.log_dir / 'insight.log',
             'media': self.log_dir / 'media.log',
             'query': self.log_dir / 'query.log'
         }
-       
-        # 监控状态
+
+        # 总教练协调状态
         self.is_monitoring = False
         self.monitor_thread = None
         self.file_positions = {}  # 记录每个文件的读取位置
         self.file_line_counts = {}  # 记录每个文件的行数
-        self.is_searching = False  # 是否正在搜索
-        self.search_inactive_count = 0  # 搜索非活跃计数器
+        self.is_searching = False  # 是否正在分析
+        self.search_inactive_count = 0  # 分析非活跃计数器
         self.write_lock = Lock()  # 写入锁，防止并发写入冲突
-        
-        # 主持人相关状态
-        self.agent_speeches_buffer = []  # agent发言缓冲区
-        self.host_speech_threshold = 5  # 每5条agent发言触发一次主持人发言
-        self.is_host_generating = False  # 主持人是否正在生成发言
+
+        # 总教练协调状态
+        self.agent_speeches_buffer = []  # Agent分析报告缓冲区
+        self.host_speech_threshold = 5  # 每5条Agent报告触发一次总教练决策
+        self.is_host_generating = False  # 总教练是否正在生成决策
        
         # 目标节点名称 - 直接匹配字符串
         self.target_nodes = [
@@ -68,25 +68,25 @@ class LogMonitor:
         try:
             if self.forum_log_file.exists():
                 self.forum_log_file.unlink()
-           
+
             # 创建新的forum.log文件并写入开始标记
             start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # 使用write_to_forum_log函数来写入开始标记，确保格式一致
             with open(self.forum_log_file, 'w', encoding='utf-8') as f:
                 pass  # 先创建空文件
-            self.write_to_forum_log(f"=== ForumEngine 监控开始 - {start_time} ===", "SYSTEM")
-               
+            self.write_to_forum_log(f"=== ForumEngine 协调会话开始 - {start_time} ===", "SYSTEM")
+
             print(f"ForumEngine: forum.log 已清空并初始化")
-            
+
             # 重置JSON捕获状态
             self.capturing_json = {}
             self.json_buffer = {}
             self.json_start_line = {}
-            
-            # 重置主持人相关状态
+
+            # 重置总教练协调状态
             self.agent_speeches_buffer = []
             self.is_host_generating = False
-           
+
         except Exception as e:
             print(f"ForumEngine: 清空forum.log失败: {e}")
    
@@ -392,40 +392,40 @@ class LogMonitor:
         return captured_contents
     
     def _trigger_host_speech(self):
-        """触发主持人发言（同步执行）"""
+        """触发总教练决策（同步执行）"""
         if not HOST_AVAILABLE or self.is_host_generating:
             return
-        
+
         try:
             # 设置生成标志
             self.is_host_generating = True
-            
-            # 获取缓冲区的5条发言
+
+            # 获取缓冲区的5条Agent报告
             recent_speeches = self.agent_speeches_buffer[:5]
             if len(recent_speeches) < 5:
                 self.is_host_generating = False
                 return
-            
-            print("ForumEngine: 正在生成主持人发言...")
-            
-            # 调用主持人生成发言（传入最近5条）
+
+            print("ForumEngine: 总教练正在统筹决策...")
+
+            # 调用总教练生成决策（传入最近5条Agent报告）
             host_speech = generate_host_speech(recent_speeches)
-            
+
             if host_speech:
-                # 写入主持人发言到forum.log
+                # 写入总教练决策到forum.log
                 self.write_to_forum_log(host_speech, "HOST")
-                print(f"ForumEngine: 主持人发言已记录")
-                
-                # 清空已处理的5条发言
+                print(f"ForumEngine: 总教练决策已记录")
+
+                # 清空已处理的5条报告
                 self.agent_speeches_buffer = self.agent_speeches_buffer[5:]
             else:
-                print("ForumEngine: 主持人发言生成失败")
-            
+                print("ForumEngine: 总教练决策生成失败")
+
             # 重置生成标志
             self.is_host_generating = False
-                
+
         except Exception as e:
-            print(f"ForumEngine: 触发主持人发言时出错: {e}")
+            print(f"ForumEngine: 触发总教练决策时出错: {e}")
             self.is_host_generating = False
     
     def _clean_content_tags(self, content: str, app_name: str) -> str:
@@ -452,9 +452,9 @@ class LogMonitor:
         return content.strip()
    
     def monitor_logs(self):
-        """智能监控日志文件"""
-        print("ForumEngine: 论坛创建中...")
-       
+        """总教练协调系统 - 智能收集Agent分析报告"""
+        print("ForumEngine: 总教练协调系统启动中...")
+
         # 初始化文件行数和位置 - 记录当前状态作为基线
         for app_name, log_file in self.monitored_logs.items():
             self.file_line_counts[app_name] = self.get_file_line_count(log_file)
@@ -480,18 +480,18 @@ class LogMonitor:
                         # 立即读取新增内容
                         new_lines = self.read_new_lines(log_file, app_name)
                        
-                        # 先检查是否需要触发搜索（只触发一次）
+                        # 先检查是否需要触发分析（只触发一次）
                         if not self.is_searching:
                             for line in new_lines:
                                 if line.strip() and 'FirstSummaryNode' in line:
-                                    print(f"ForumEngine: 在{app_name}中检测到第一次论坛发表内容")
+                                    print(f"ForumEngine: 在{app_name}中检测到Agent首次分析报告")
                                     self.is_searching = True
                                     self.search_inactive_count = 0
-                                    # 清空forum.log开始新会话
+                                    # 清空forum.log开始新的协调会话
                                     self.clear_forum_log()
                                     break  # 找到一个就够了，跳出循环
-                       
-                        # 处理所有新增内容（如果正在搜索状态）
+
+                        # 处理所有新增内容（如果正在分析状态）
                         if self.is_searching:
                             # 使用新的处理逻辑
                             captured_contents = self.process_lines_for_json(new_lines, app_name)
@@ -500,17 +500,17 @@ class LogMonitor:
                                 # 将app_name转换为大写作为标签（如 insight -> INSIGHT）
                                 source_tag = app_name.upper()
                                 self.write_to_forum_log(content, source_tag)
-                                # print(f"ForumEngine: 捕获 - {content}")
+                                # print(f"ForumEngine: 捕获Agent分析 - {content}")
                                 captured_any = True
-                                
-                                # 将发言添加到缓冲区（格式化为完整的日志行）
+
+                                # 将Agent报告添加到缓冲区（格式化为完整的日志行）
                                 timestamp = datetime.now().strftime('%H:%M:%S')
                                 log_line = f"[{timestamp}] [{source_tag}] {content}"
                                 self.agent_speeches_buffer.append(log_line)
-                                
-                                # 检查是否需要触发主持人发言
+
+                                # 检查是否需要触发总教练决策
                                 if len(self.agent_speeches_buffer) >= self.host_speech_threshold and not self.is_host_generating:
-                                    # 同步触发主持人发言
+                                    # 同步触发总教练决策
                                     self._trigger_host_speech()
                    
                     elif current_lines < previous_lines:
@@ -525,33 +525,33 @@ class LogMonitor:
                     # 更新行数记录
                     self.file_line_counts[app_name] = current_lines
                
-                # 检查是否应该结束当前搜索会话
+                # 检查是否应该结束当前协调会话
                 if self.is_searching:
                     if any_shrink:
-                        # log变短，结束当前搜索会话，重置为等待状态
-                        # print("ForumEngine: 日志缩短，结束当前搜索会话，回到等待状态")
+                        # log变短，结束当前协调会话，重置为等待状态
+                        # print("ForumEngine: 日志缩短，结束当前协调会话，回到等待状态")
                         self.is_searching = False
                         self.search_inactive_count = 0
-                        # 重置主持人相关状态
+                        # 重置总教练协调状态
                         self.agent_speeches_buffer = []
                         self.is_host_generating = False
                         # 写入结束标记
                         end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                        self.write_to_forum_log(f"=== ForumEngine 论坛结束 - {end_time} ===", "SYSTEM")
-                        # print("ForumEngine: 已重置基线，等待下次FirstSummaryNode触发")
+                        self.write_to_forum_log(f"=== ForumEngine 协调会话结束 - {end_time} ===", "SYSTEM")
+                        # print("ForumEngine: 已重置基线，等待下次Agent首次分析报告")
                     elif not any_growth and not captured_any:
                         # 没有增长也没有捕获内容，增加非活跃计数
                         self.search_inactive_count += 1
                         if self.search_inactive_count >= 900:  # 15分钟无活动才结束
-                            print("ForumEngine: 长时间无活动，结束论坛")
+                            print("ForumEngine: 长时间无活动，结束协调会话")
                             self.is_searching = False
                             self.search_inactive_count = 0
-                            # 重置主持人相关状态
+                            # 重置总教练协调状态
                             self.agent_speeches_buffer = []
                             self.is_host_generating = False
                             # 写入结束标记
                             end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                            self.write_to_forum_log(f"=== ForumEngine 论坛结束 - {end_time} ===", "SYSTEM")
+                            self.write_to_forum_log(f"=== ForumEngine 协调会话结束 - {end_time} ===", "SYSTEM")
                     else:
                         self.search_inactive_count = 0  # 重置计数器
                
@@ -559,53 +559,53 @@ class LogMonitor:
                 time.sleep(1)
                
             except Exception as e:
-                print(f"ForumEngine: 论坛记录中出错: {e}")
+                print(f"ForumEngine: 协调记录中出错: {e}")
                 import traceback
                 traceback.print_exc()
                 time.sleep(2)
-       
-        print("ForumEngine: 停止论坛日志文件")
+
+        print("ForumEngine: 停止总教练协调系统")
    
     def start_monitoring(self):
-        """开始智能监控"""
+        """启动总教练协调系统"""
         if self.is_monitoring:
-            print("ForumEngine: 论坛已经在运行中")
+            print("ForumEngine: 总教练协调系统已经在运行中")
             return False
-       
+
         try:
-            # 启动监控
+            # 启动总教练协调系统
             self.is_monitoring = True
             self.monitor_thread = threading.Thread(target=self.monitor_logs, daemon=True)
             self.monitor_thread.start()
-           
-            print("ForumEngine: 论坛已启动")
+
+            print("ForumEngine: 总教练协调系统已启动")
             return True
-           
+
         except Exception as e:
-            print(f"ForumEngine: 启动论坛失败: {e}")
+            print(f"ForumEngine: 启动总教练协调系统失败: {e}")
             self.is_monitoring = False
             return False
    
     def stop_monitoring(self):
-        """停止监控"""
+        """停止总教练协调系统"""
         if not self.is_monitoring:
-            print("ForumEngine: 论坛未运行")
+            print("ForumEngine: 总教练协调系统未运行")
             return
-       
+
         try:
             self.is_monitoring = False
-           
+
             if self.monitor_thread and self.monitor_thread.is_alive():
                 self.monitor_thread.join(timeout=2)
-           
+
             # 写入结束标记
             end_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            self.write_to_forum_log(f"=== ForumEngine 论坛结束 - {end_time} ===", "SYSTEM")
-           
-            print("ForumEngine: 论坛已停止")
-           
+            self.write_to_forum_log(f"=== ForumEngine 协调会话结束 - {end_time} ===", "SYSTEM")
+
+            print("ForumEngine: 总教练协调系统已停止")
+
         except Exception as e:
-            print(f"ForumEngine: 停止论坛失败: {e}")
+            print(f"ForumEngine: 停止总教练协调系统失败: {e}")
    
     def get_forum_log_content(self) -> List[str]:
         """获取forum.log的内容"""
@@ -712,11 +712,11 @@ def get_monitor() -> LogMonitor:
     return _monitor_instance
 
 def start_forum_monitoring():
-    """启动ForumEngine智能监控"""
+    """启动ForumEngine总教练协调系统"""
     return get_monitor().start_monitoring()
 
 def stop_forum_monitoring():
-    """停止ForumEngine监控"""
+    """停止ForumEngine总教练协调系统"""
     get_monitor().stop_monitoring()
 
 def get_forum_log():
