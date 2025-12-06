@@ -1,6 +1,6 @@
 """
 节点处理模块
-实现Deep Search Agent的各个处理步骤
+实现Theory Expert Agent的各个处理步骤
 """
 
 from .base_node import BaseNode

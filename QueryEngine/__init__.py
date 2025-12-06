@@ -1,12 +1,12 @@
 """
-Deep Search Agent
-一个无框架的深度搜索AI代理实现
+Theory Expert Agent (理论专家Agent)
+中长跑运动科学理论专家 - 基于LangGraph的AI代理实现
 """
 
-from .agent import DeepSearchAgent, create_agent
+from .agent import TheoryExpertAgent, create_agent
 from .utils.config import Config, load_config
 
-__version__ = "1.0.0"
-__author__ = "Deep Search Agent Team"
+__version__ = "2.0.0"
+__author__ = "MultiRunningAgents Team"
 
-__all__ = ["DeepSearchAgent", "create_agent", "Config", "load_config"]
+__all__ = ["TheoryExpertAgent", "create_agent", "Config", "load_config"]

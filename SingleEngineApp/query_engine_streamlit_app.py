@@ -26,7 +26,7 @@ except locale.Error:
 # 添加src目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from QueryEngine import DeepSearchAgent, Config
+from QueryEngine import TheoryExpertAgent, Config
 from config import QUERY_ENGINE_API_KEY, QUERY_ENGINE_BASE_URL, QUERY_ENGINE_MODEL_NAME, TAVILY_API_KEY
 
 
@@ -262,8 +262,8 @@ def execute_research(query: str, config: Config):
         status_text = st.empty()
 
         # 初始化Agent
-        status_text.markdown("**正在初始化智能检索引擎...**")
-        agent = DeepSearchAgent(config)
+        status_text.markdown("**正在初始化理论专家...**")
+        agent = TheoryExpertAgent(config)
         st.session_state.agent = agent
 
         progress_bar.progress(10)
@@ -309,8 +309,8 @@ def execute_research(query: str, config: Config):
         st.error(f"研究过程中发生错误: {str(e)}")
 
 
-def display_results(agent: DeepSearchAgent, final_report: str):
-    """显示智能检索结果"""
+def display_results(agent: TheoryExpertAgent, final_report: str):
+    """显示理论研究结果"""
     st.markdown("---")
     st.markdown("## 智能分析结果")
 

@@ -1,6 +1,6 @@
 """
 Prompt模块
-定义Deep Search Agent各个阶段使用的系统提示词
+定义Theory Expert Agent各个阶段使用的系统提示词
 """
 
 from .prompts import (

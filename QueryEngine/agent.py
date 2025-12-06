@@ -1,6 +1,6 @@
 """
-Deep Search Agent主类
-整合所有模块，实现完整的深度搜索流程
+Theory Expert Agent主类
+中长跑运动科学理论专家，整合所有模块实现完整的理论研究流程
 """
 
 import json
@@ -23,13 +23,13 @@ from .tools import TavilyNewsAgency, TavilyResponse
 from .utils import Config, load_config, format_search_results_for_prompt
 
 
-class DeepSearchAgent:
-    """Deep Search Agent主类"""
-    
+class TheoryExpertAgent:
+    """Theory Expert Agent主类 - 中长跑运动科学理论专家"""
+
     def __init__(self, config: Optional[Config] = None):
         """
-        初始化Deep Search Agent
-        
+        初始化Theory Expert Agent
+
         Args:
             config: 配置对象，如果不提供则自动加载
         """
@@ -52,7 +52,7 @@ class DeepSearchAgent:
         # 确保输出目录存在
         os.makedirs(self.config.output_dir, exist_ok=True)
         
-        print(f"Query Agent已初始化")
+        print(f"Theory Expert Agent (理论专家) 已初始化")
         print(f"使用LLM: {self.llm_client.get_model_info()}")
         print(f"搜索工具集: TavilyNewsAgency (支持6种搜索工具)")
     
@@ -140,17 +140,17 @@ class DeepSearchAgent:
     
     def research(self, query: str, save_report: bool = True) -> str:
         """
-        执行深度研究
-        
+        执行理论研究（中长跑运动科学理论专家）
+
         Args:
             query: 研究查询
             save_report: 是否保存报告到文件
-            
+
         Returns:
-            最终报告内容
+            最终理论分析报告内容
         """
         print(f"\n{'='*60}")
-        print(f"开始深度研究: {query}")
+        print(f"理论专家开始研究: {query}")
         print(f"{'='*60}")
         
         try:
@@ -168,7 +168,7 @@ class DeepSearchAgent:
                 self._save_report(final_report)
             
             print(f"\n{'='*60}")
-            print("深度研究完成！")
+            print("理论研究完成！")
             print(f"{'='*60}")
             
             return final_report
@@ -458,15 +458,15 @@ class DeepSearchAgent:
         print(f"状态已保存到 {filepath}")
 
 
-def create_agent(config_file: Optional[str] = None) -> DeepSearchAgent:
+def create_agent(config_file: Optional[str] = None) -> TheoryExpertAgent:
     """
-    创建Deep Search Agent实例的便捷函数
-    
+    创建Theory Expert Agent实例的便捷函数
+
     Args:
         config_file: 配置文件路径
-        
+
     Returns:
-        DeepSearchAgent实例
+        TheoryExpertAgent实例
     """
     config = load_config(config_file)
-    return DeepSearchAgent(config)
+    return TheoryExpertAgent(config)

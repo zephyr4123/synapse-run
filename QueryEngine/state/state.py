@@ -1,5 +1,5 @@
 """
-Deep Search Agent状态管理
+Theory Expert Agent状态管理
 定义所有状态数据结构和操作方法
 """
 
