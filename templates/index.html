@@ -19,14 +19,14 @@
 
             /* 边框和分隔线 */
             --border: rgba(255, 255, 255, 0.08);
-            --border-focus: rgba(99, 102, 241, 0.5);
+            --border-focus: rgba(0, 78, 137, 0.5);
 
-            /* 主题色 - 渐变蓝紫 */
-            --primary: #6366f1;
-            --primary-light: #818cf8;
-            --primary-dark: #4f46e5;
-            --primary-dim: rgba(99, 102, 241, 0.15);
-            --primary-glow: rgba(99, 102, 241, 0.4);
+            /* 主题色 - 蓝绿渐变 */
+            --primary: #004E89;
+            --primary-light: #72B01D;
+            --primary-dark: #003A63;
+            --primary-dim: rgba(0, 78, 137, 0.15);
+            --primary-glow: rgba(0, 78, 137, 0.4);
 
             /* 功能色 */
             --success: #10b981;
@@ -132,7 +132,7 @@
         .brand-logo {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, #004E89 0%, #72B01D 100%);
             border-radius: var(--radius-md);
             display: grid;
             place-items: center;
@@ -183,7 +183,7 @@
         }
 
         .search-button {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, #004E89 0%, #72B01D 100%);
             border: none;
             color: white;
             padding: 10px 20px;
@@ -402,7 +402,7 @@
             min-height: 0;
             position: relative;
             line-height: 1.8;
-            border: 1px solid rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(0, 78, 137, 0.2);
         }
 
         /* 终端网格背景 */
@@ -414,8 +414,8 @@
             right: 0;
             bottom: 0;
             background:
-                linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px),
-                linear-gradient(rgba(99, 102, 241, 0.02) 1px, transparent 1px);
+                linear-gradient(90deg, rgba(0, 78, 137, 0.02) 1px, transparent 1px),
+                linear-gradient(rgba(0, 78, 137, 0.02) 1px, transparent 1px);
             background-size: 20px 20px;
             pointer-events: none;
             z-index: 1;
@@ -525,7 +525,7 @@
 
         .task-progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            background: linear-gradient(90deg, #004E89 0%, #72B01D 100%);
             border-radius: var(--radius-full);
             transition: width 0.4s ease;
             box-shadow: 0 0 12px var(--primary-glow);
@@ -675,7 +675,7 @@
 
         .forum-message.user {
             align-self: flex-end;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, #004E89 0%, #72B01D 100%);
             color: white;
             border-bottom-right-radius: 4px;
         }
@@ -937,7 +937,7 @@
                     </button>
                     <button class="app-button locked" data-app="report" title="需等待其余三个Agent工作完毕">
                         <span class="status-indicator" id="status-report"></span>
-                        最终命令
+                        训练秘书
                     </button>
                 </div>
 
@@ -973,20 +973,20 @@
 
         // 应用名称映射
         const appNames = {
-            insight: 'Sports Scientist',
+            insight: '运动科学家',
             media: '后勤与情报官',
-            query: 'Query Engine',
-            forum: 'Forum Engine',
-            report: 'Report Engine'
+            query: '理论专家',
+            forum: '总教练',
+            report: '训练秘书'
         };
 
         // 页面头部显示的完整Agent介绍
         const agentTitles = {
-            insight: 'Sports Scientist - 生理数据量化分析 · 循证训练建议',
+            insight: '运动科学家 - 生理数据量化分析 · 循证训练建议',
             media: '后勤与情报官 - 比赛报名 · 天气预报 · 装备价格 · 路线坡度',
-            query: 'Query Agent - 专业知识搜索',
-            forum: 'Forum Engine - 多智能体交流',
-            report: 'Report Agent - 训练报告生成'
+            query: '理论专家 - 训练理论研究 · 学术文献检索',
+            forum: '总教练 - 多智能体协同 · 训练方案统筹',
+            report: '训练秘书 - 报告生成汇总 · 数据可视化呈现'
         };
 
         // 初始化
@@ -1126,13 +1126,13 @@
             currentApp = app;
 
             if (app === 'forum') {
-                document.getElementById('embeddedHeader').textContent = 'Forum Engine - 多智能体交流';
+                document.getElementById('embeddedHeader').textContent = '总教练 - 多智能体协同 · 训练方案统筹';
                 document.getElementById('forumContainer').classList.add('active');
                 document.getElementById('reportContainer').classList.remove('active');
                 document.getElementById('consoleOutput').innerHTML = '<div class="console-line">[系统] 切换到论坛模式</div>';
                 loadForumLog();
             } else if (app === 'report') {
-                document.getElementById('embeddedHeader').textContent = 'Report Agent - 训练报告生成';
+                document.getElementById('embeddedHeader').textContent = '训练秘书 - 报告生成汇总 · 数据可视化呈现';
                 document.getElementById('reportContainer').classList.add('active');
                 document.getElementById('forumContainer').classList.remove('active');
                 document.getElementById('consoleOutput').innerHTML = '<div class="console-line">[系统] 切换到报告生成模式</div>';
@@ -1249,7 +1249,7 @@
             const content = document.getElementById('embeddedContent');
 
             if (app === 'forum') {
-                header.textContent = 'Forum Engine - 多智能体交流';
+                header.textContent = '总教练 - 多智能体协同 · 训练方案统筹';
                 Object.values(preloadedIframes).forEach(iframe => iframe.style.display = 'none');
                 content.querySelector('.status-placeholder')?.remove();
                 document.getElementById('forumContainer').classList.add('active');
@@ -1258,7 +1258,7 @@
             }
 
             if (app === 'report') {
-                header.textContent = 'Report Agent - 训练报告生成';
+                header.textContent = '训练秘书 - 报告生成汇总 · 数据可视化呈现';
                 Object.values(preloadedIframes).forEach(iframe => iframe.style.display = 'none');
                 content.querySelector('.status-placeholder')?.remove();
                 document.getElementById('reportContainer').classList.add('active');
@@ -1582,10 +1582,10 @@
                 let displayName = '';
 
                 switch(source.toUpperCase()) {
-                    case 'INSIGHT': displayName = 'Sports Scientist'; break;
+                    case 'INSIGHT': displayName = '运动科学家'; break;
                     case 'MEDIA': displayName = '后勤与情报官'; break;
-                    case 'QUERY': displayName = 'Query Engine'; break;
-                    case 'HOST': messageType = 'host'; displayName = 'Forum Host'; break;
+                    case 'QUERY': displayName = '理论专家'; break;
+                    case 'HOST': messageType = 'host'; displayName = '总教练'; break;
                 }
 
                 return {

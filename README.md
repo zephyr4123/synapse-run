@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="static/image/Synapse Run.png" alt="Synapse Run Logo" width="100%">
+<img src="static/image/logo.png" alt="Synapse Run Logo" width="100%">
 
 # Synapse Run
 
