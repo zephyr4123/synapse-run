@@ -273,9 +273,11 @@ docs/.vitepress/cache
 
 # ==== 日志和临时文件 ====
 # 日志文件
-# *.log
-logs/
-# */logs/
+*.log
+logs/*.log
+logs/*.json
+# 保留logs目录结构
+!logs/.gitkeep
 
 # 临时文件
 temp/
@@ -288,7 +290,6 @@ tmp/
 
 # ==== 配置和密钥 ====
 # 敏感配置文件
-/config.py
 config.ini
 secrets.json
 .secrets
@@ -338,14 +339,3 @@ test_results/
 # Ai操作指引文件
 OperationGuidance/
 CLAUDE.md
-
-# ==== 报告输出文件 ====
-# 生成的HTML报告
-reports/
-*/reports/
-
-# Agent生成的报告文件夹
-final_reports/
-insight_engine_streamlit_reports/
-media_engine_streamlit_reports/
-query_engine_streamlit_reports/
