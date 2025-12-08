@@ -108,7 +108,7 @@ class TrainingDataImporter:
             if not result:
                 print("   表不存在,正在创建training_records表...")
                 # 读取SQL文件
-                sql_file = project_root / "MindSpider/DeepSentimentCrawling/MediaCrawler/schema/training_tables.sql"
+                sql_file = project_root / "scripts/training_tables.sql"
                 if not sql_file.exists():
                     raise FileNotFoundError(f"SQL文件不存在: {sql_file}")
 
