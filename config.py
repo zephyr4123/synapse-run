@@ -9,8 +9,8 @@ Synapse Run 配置文件
 # 请根据您的实际MySQL配置修改以下参数
 DB_HOST = "localhost" # 数据库主机地址,如 "localhost" 或 "127.0.0.1"
 DB_PORT = 3306 # 数据库端口,默认3306
-DB_USER = "" # 数据库用户名
-DB_PASSWORD = "" # 数据库密码
+DB_USER = "huangsuxiang" # 数据库用户名
+DB_PASSWORD = "Wodeshijie1.12" # 数据库密码
 DB_NAME = "traningDate" # 数据库名称(建议保持此名称)
 DB_CHARSET = "utf8mb4"          # 字符集,建议使用utf8mb4
 

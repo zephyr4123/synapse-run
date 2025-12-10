@@ -87,7 +87,6 @@ class BaseTrainingDataSearch(ABC):
     def search_recent_trainings(
         self,
         days: int = 7,
-        exercise_type: Optional[str] = None,
         limit: int = 50
     ) -> DBResponse:
         """
@@ -95,7 +94,6 @@ class BaseTrainingDataSearch(ABC):
 
         Args:
             days: 查询最近多少天
-            exercise_type: 运动类型筛选
             limit: 返回结果数量限制
 
         Returns:
@@ -108,7 +106,6 @@ class BaseTrainingDataSearch(ABC):
         self,
         start_date: str,
         end_date: str,
-        exercise_type: Optional[str] = None,
         limit: int = 100
     ) -> DBResponse:
         """
@@ -117,7 +114,6 @@ class BaseTrainingDataSearch(ABC):
         Args:
             start_date: 开始日期 'YYYY-MM-DD'
             end_date: 结束日期 'YYYY-MM-DD'
-            exercise_type: 运动类型筛选
             limit: 返回结果数量限制
 
         Returns:
@@ -129,8 +125,7 @@ class BaseTrainingDataSearch(ABC):
     def get_training_stats(
         self,
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        exercise_type: Optional[str] = None
+        end_date: Optional[str] = None
     ) -> DBResponse:
         """
         获取训练统计数据
@@ -138,7 +133,6 @@ class BaseTrainingDataSearch(ABC):
         Args:
             start_date: 开始日期 'YYYY-MM-DD'
             end_date: 结束日期 'YYYY-MM-DD'
-            exercise_type: 运动类型筛选
 
         Returns:
             DBResponse对象,statistics字段包含统计结果
@@ -150,7 +144,6 @@ class BaseTrainingDataSearch(ABC):
         self,
         min_distance_km: float,
         max_distance_km: Optional[float] = None,
-        exercise_type: Optional[str] = None,
         limit: int = 50
     ) -> DBResponse:
         """
@@ -159,7 +152,6 @@ class BaseTrainingDataSearch(ABC):
         Args:
             min_distance_km: 最小距离(公里)
             max_distance_km: 最大距离(公里)
-            exercise_type: 运动类型筛选
             limit: 返回结果数量限制
 
         Returns:
@@ -172,7 +164,6 @@ class BaseTrainingDataSearch(ABC):
         self,
         min_avg_hr: int,
         max_avg_hr: Optional[int] = None,
-        exercise_type: Optional[str] = None,
         limit: int = 50
     ) -> DBResponse:
         """
@@ -181,29 +172,10 @@ class BaseTrainingDataSearch(ABC):
         Args:
             min_avg_hr: 最小平均心率
             max_avg_hr: 最大平均心率
-            exercise_type: 运动类型筛选
             limit: 返回结果数量限制
 
         Returns:
             DBResponse对象
-        """
-        pass
-
-    @abstractmethod
-    def get_exercise_type_summary(
-        self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
-    ) -> DBResponse:
-        """
-        按运动类型汇总统计
-
-        Args:
-            start_date: 开始日期 'YYYY-MM-DD'
-            end_date: 结束日期 'YYYY-MM-DD'
-
-        Returns:
-            DBResponse对象,statistics字段包含分组统计
         """
         pass
 
@@ -229,6 +201,5 @@ class BaseTrainingDataSearch(ABC):
             "search_by_date_range",
             "get_training_stats",
             "search_by_distance_range",
-            "search_by_heart_rate",
-            "get_exercise_type_summary"
+            "search_by_heart_rate"
         ]

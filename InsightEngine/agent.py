@@ -146,9 +146,8 @@ class SportsScientistAgent:
                 - "get_training_stats": 获取训练统计数据
                 - "search_by_distance_range": 按距离范围查询
                 - "search_by_heart_rate": 按心率区间查询
-                - "get_exercise_type_summary": 按运动类型汇总
             query: 查询描述（用于日志记录）
-            **kwargs: 额外参数（如days, start_date, end_date, exercise_type, min_distance_km,
+            **kwargs: 额外参数（如days, start_date, end_date, min_distance_km,
                      max_distance_km, min_avg_hr, max_avg_hr, limit等）
 
         Returns:
@@ -163,12 +162,10 @@ class SportsScientistAgent:
                 if not days:
                     raise ValueError("search_recent_trainings工具需要days参数")
 
-                exercise_type = kwargs.get("exercise_type")
                 limit = kwargs.get("limit", 50)
 
                 response = self.search_agency.search_recent_trainings(
                     days=days,
-                    exercise_type=exercise_type,
                     limit=limit
                 )
 
@@ -178,25 +175,21 @@ class SportsScientistAgent:
                 if not start_date or not end_date:
                     raise ValueError("search_by_date_range工具需要start_date和end_date参数")
 
-                exercise_type = kwargs.get("exercise_type")
                 limit = kwargs.get("limit", 100)
 
                 response = self.search_agency.search_by_date_range(
                     start_date=start_date,
                     end_date=end_date,
-                    exercise_type=exercise_type,
                     limit=limit
                 )
 
             elif tool_name == "get_training_stats":
                 start_date = kwargs.get("start_date")
                 end_date = kwargs.get("end_date")
-                exercise_type = kwargs.get("exercise_type")
 
                 response = self.search_agency.get_training_stats(
                     start_date=start_date,
                     end_date=end_date,
-                    exercise_type=exercise_type
                 )
 
             elif tool_name == "search_by_distance_range":
@@ -205,13 +198,11 @@ class SportsScientistAgent:
                     raise ValueError("search_by_distance_range工具需要min_distance_km参数")
 
                 max_distance_km = kwargs.get("max_distance_km")
-                exercise_type = kwargs.get("exercise_type")
                 limit = kwargs.get("limit", 50)
 
                 response = self.search_agency.search_by_distance_range(
                     min_distance_km=min_distance_km,
                     max_distance_km=max_distance_km,
-                    exercise_type=exercise_type,
                     limit=limit
                 )
 
@@ -221,23 +212,12 @@ class SportsScientistAgent:
                     raise ValueError("search_by_heart_rate工具需要min_avg_hr参数")
 
                 max_avg_hr = kwargs.get("max_avg_hr")
-                exercise_type = kwargs.get("exercise_type")
                 limit = kwargs.get("limit", 50)
 
                 response = self.search_agency.search_by_heart_rate(
                     min_avg_hr=min_avg_hr,
                     max_avg_hr=max_avg_hr,
-                    exercise_type=exercise_type,
                     limit=limit
-                )
-
-            elif tool_name == "get_exercise_type_summary":
-                start_date = kwargs.get("start_date")
-                end_date = kwargs.get("end_date")
-
-                response = self.search_agency.get_exercise_type_summary(
-                    start_date=start_date,
-                    end_date=end_date
                 )
 
             else:
@@ -365,7 +345,6 @@ class SportsScientistAgent:
                 print(f"    ⚠️ search_recent_trainings工具缺少days参数,默认使用30天")
                 days = 30
             search_kwargs["days"] = days
-            search_kwargs["exercise_type"] = search_output.get("exercise_type")
             search_kwargs["limit"] = search_output.get("limit") or 50
             print(f"  - 查询最近 {days} 天训练记录")
 
@@ -378,7 +357,6 @@ class SportsScientistAgent:
                 if self._validate_date_format(start_date) and self._validate_date_format(end_date):
                     search_kwargs["start_date"] = start_date
                     search_kwargs["end_date"] = end_date
-                    search_kwargs["exercise_type"] = search_output.get("exercise_type")
                     search_kwargs["limit"] = search_output.get("limit") or 100
                     print(f"  - 时间范围: {start_date} 到 {end_date}")
                 else:
@@ -398,7 +376,6 @@ class SportsScientistAgent:
                 search_kwargs["start_date"] = start_date
             if end_date and self._validate_date_format(end_date):
                 search_kwargs["end_date"] = end_date
-            search_kwargs["exercise_type"] = search_output.get("exercise_type")
             print(f"  - 获取训练统计数据")
 
         # search_by_distance_range: 需要min_distance_km
@@ -407,7 +384,6 @@ class SportsScientistAgent:
             if min_distance_km is not None:
                 search_kwargs["min_distance_km"] = min_distance_km
                 search_kwargs["max_distance_km"] = search_output.get("max_distance_km")
-                search_kwargs["exercise_type"] = search_output.get("exercise_type")
                 search_kwargs["limit"] = search_output.get("limit") or 50
                 print(f"  - 距离范围: {min_distance_km}km+")
             else:
@@ -421,23 +397,12 @@ class SportsScientistAgent:
             if min_avg_hr is not None:
                 search_kwargs["min_avg_hr"] = min_avg_hr
                 search_kwargs["max_avg_hr"] = search_output.get("max_avg_hr")
-                search_kwargs["exercise_type"] = search_output.get("exercise_type")
                 search_kwargs["limit"] = search_output.get("limit") or 50
                 print(f"  - 心率范围: {min_avg_hr}bpm+")
             else:
                 print(f"    ⚠️ 缺少min_avg_hr参数,改用search_recent_trainings")
                 search_tool = "search_recent_trainings"
                 search_kwargs = {"days": 30, "limit": 50}
-
-        # get_exercise_type_summary: 可选start_date和end_date
-        elif search_tool == "get_exercise_type_summary":
-            start_date = search_output.get("start_date")
-            end_date = search_output.get("end_date")
-            if start_date and self._validate_date_format(start_date):
-                search_kwargs["start_date"] = start_date
-            if end_date and self._validate_date_format(end_date):
-                search_kwargs["end_date"] = end_date
-            print(f"  - 按运动类型汇总")
 
         else:
             print(f"    ⚠️ 未知工具 {search_tool},使用search_recent_trainings")
@@ -549,7 +514,6 @@ class SportsScientistAgent:
                     print(f"      ⚠️ search_recent_trainings工具缺少days参数,默认使用30天")
                     days = 30
                 search_kwargs["days"] = days
-                search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
                 search_kwargs["limit"] = reflection_output.get("limit") or 50
                 print(f"    查询最近 {days} 天训练记录")
 
@@ -562,7 +526,6 @@ class SportsScientistAgent:
                     if self._validate_date_format(start_date) and self._validate_date_format(end_date):
                         search_kwargs["start_date"] = start_date
                         search_kwargs["end_date"] = end_date
-                        search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
                         search_kwargs["limit"] = reflection_output.get("limit") or 100
                         print(f"    时间范围: {start_date} 到 {end_date}")
                     else:
@@ -582,7 +545,6 @@ class SportsScientistAgent:
                     search_kwargs["start_date"] = start_date
                 if end_date and self._validate_date_format(end_date):
                     search_kwargs["end_date"] = end_date
-                search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
                 print(f"    获取训练统计数据")
 
             # search_by_distance_range: 需要min_distance_km
@@ -591,7 +553,6 @@ class SportsScientistAgent:
                 if min_distance_km is not None:
                     search_kwargs["min_distance_km"] = min_distance_km
                     search_kwargs["max_distance_km"] = reflection_output.get("max_distance_km")
-                    search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
                     search_kwargs["limit"] = reflection_output.get("limit") or 50
                     print(f"    距离范围: {min_distance_km}km+")
                 else:
@@ -605,23 +566,12 @@ class SportsScientistAgent:
                 if min_avg_hr is not None:
                     search_kwargs["min_avg_hr"] = min_avg_hr
                     search_kwargs["max_avg_hr"] = reflection_output.get("max_avg_hr")
-                    search_kwargs["exercise_type"] = reflection_output.get("exercise_type")
                     search_kwargs["limit"] = reflection_output.get("limit") or 50
                     print(f"    心率范围: {min_avg_hr}bpm+")
                 else:
                     print(f"      ⚠️ 缺少min_avg_hr参数,改用search_recent_trainings")
                     search_tool = "search_recent_trainings"
                     search_kwargs = {"days": 30, "limit": 50}
-
-            # get_exercise_type_summary: 可选start_date和end_date
-            elif search_tool == "get_exercise_type_summary":
-                start_date = reflection_output.get("start_date")
-                end_date = reflection_output.get("end_date")
-                if start_date and self._validate_date_format(start_date):
-                    search_kwargs["start_date"] = start_date
-                if end_date and self._validate_date_format(end_date):
-                    search_kwargs["end_date"] = end_date
-                print(f"    按运动类型汇总")
 
             else:
                 print(f"      ⚠️ 未知工具 {search_tool},使用search_recent_trainings")

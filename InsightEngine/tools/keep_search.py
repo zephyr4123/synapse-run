@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Keep运动APP训练数据搜索工具
-基于training_records_keep表的数据查询实现
+Keep运动APP训练数据搜索工具 (ORM版本)
+基于SQLAlchemy ORM实现,替代原生SQL,避免SQL注入风险
 """
 
-import os
 import json
-import pymysql
-import pymysql.cursors
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from sqlalchemy import func
 
 from .base_search import BaseTrainingDataSearch, DBResponse
+from .db_models import TrainingRecordKeep
+from .db_session import db_session_manager
 
 
 @dataclass
 class KeepTrainingRecord:
-    """Keep训练记录数据类 - 对应training_records_keep表结构"""
+    """Keep训练记录数据类"""
     id: int
     user_id: str
 
@@ -46,45 +46,23 @@ class KeepTrainingRecord:
 
 
 class KeepDataSearch(BaseTrainingDataSearch):
-    """Keep数据源搜索工具"""
+    """Keep数据源搜索工具 (ORM版本)"""
 
     def __init__(self):
         super().__init__(data_source="keep")
+        self.db_manager = db_session_manager
 
     def _load_db_config(self) -> Dict[str, Any]:
-        """从环境变量加载数据库配置"""
-        return {
-            'host': os.getenv("DB_HOST"),
-            'user': os.getenv("DB_USER"),
-            'password': os.getenv("DB_PASSWORD"),
-            'db': os.getenv("DB_NAME"),
-            'port': int(os.getenv("DB_PORT", 3306)),
-            'charset': os.getenv("DB_CHARSET", "utf8mb4"),
-            'cursorclass': pymysql.cursors.DictCursor
-        }
+        """ORM方式不需要直接配置,返回空字典"""
+        return {}
 
     def _validate_config(self):
-        """验证配��完整性"""
-        required = ['host', 'user', 'password', 'db']
-        if missing := [k for k in required if not self.db_config[k]]:
-            raise ValueError(
-                f"Keep数据源配置缺失! 请设置环境变量: {', '.join([f'DB_{k.upper()}' for k in missing])}"
-            )
+        """ORM方式由db_session_manager统一验证"""
+        pass
 
     def _execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
-        """执行SQL查询"""
-        conn = None
-        try:
-            conn = pymysql.connect(**self.db_config)
-            with conn.cursor() as cursor:
-                cursor.execute(query, params or ())
-                return cursor.fetchall()
-        except pymysql.Error as e:
-            print(f"Keep数据源查询错误: {e}")
-            return []
-        finally:
-            if conn:
-                conn.close()
+        """ORM方式不使用原生SQL,此方法保留仅为兼容基类"""
+        raise NotImplementedError("ORM方式不使用_execute_query方法")
 
     def _parse_heart_rate_data(self, hr_json: Optional[str]) -> Optional[List[int]]:
         """解析心率JSON数据"""
@@ -105,77 +83,77 @@ class KeepDataSearch(BaseTrainingDataSearch):
         except (json.JSONDecodeError, ValueError, TypeError):
             return None
 
-    def _row_to_record(self, row: Dict[str, Any]) -> KeepTrainingRecord:
-        """将数据库行转换为KeepTrainingRecord对象"""
-        pace = self._calculate_pace(row['duration_seconds'], row.get('distance_meters'))
+    def _orm_to_record(self, orm_obj: TrainingRecordKeep) -> KeepTrainingRecord:
+        """将ORM对象转换为KeepTrainingRecord数据类"""
+        pace = self._calculate_pace(orm_obj.duration_seconds, orm_obj.distance_meters)
         return KeepTrainingRecord(
-            id=row['id'],
-            user_id=row.get('user_id', 'default_user'),
-            exercise_type=row['exercise_type'],
-            duration_seconds=row['duration_seconds'],
-            start_time=row['start_time'],
-            end_time=row['end_time'],
-            calories=row.get('calories'),
-            distance_meters=row.get('distance_meters'),
-            avg_heart_rate=row.get('avg_heart_rate'),
-            max_heart_rate=row.get('max_heart_rate'),
-            heart_rate_data=self._parse_heart_rate_data(row.get('heart_rate_data')),
-            add_ts=row['add_ts'],
-            last_modify_ts=row['last_modify_ts'],
-            data_source=row.get('data_source', 'keep_import'),
+            id=orm_obj.id,
+            user_id=orm_obj.user_id,
+            exercise_type=orm_obj.exercise_type,
+            duration_seconds=orm_obj.duration_seconds,
+            start_time=orm_obj.start_time,
+            end_time=orm_obj.end_time,
+            calories=orm_obj.calories,
+            distance_meters=orm_obj.distance_meters,
+            avg_heart_rate=orm_obj.avg_heart_rate,
+            max_heart_rate=orm_obj.max_heart_rate,
+            heart_rate_data=self._parse_heart_rate_data(orm_obj.heart_rate_data),
+            add_ts=orm_obj.add_ts,
+            last_modify_ts=orm_obj.last_modify_ts,
+            data_source=orm_obj.data_source,
             pace_per_km=pace
         )
 
     def search_recent_trainings(
         self,
         days: int = 7,
-        exercise_type: Optional[str] = None,
         limit: int = 50
     ) -> DBResponse:
-        """查询最近训练记录"""
-        params_for_log = {'days': days, 'exercise_type': exercise_type, 'limit': limit}
-        print(f"--- Keep数据源: 查询最近训练记录 (params: {params_for_log}) ---")
+        """查询最近训练记录 (ORM方式)"""
+        params_for_log = {'days': days, 'limit': limit}
+        print(f"--- Keep数据源(ORM): 查询最近训练记录 (params: {params_for_log}) ---")
 
         start_time = datetime.now() - timedelta(days=days)
-        query = """
-            SELECT * FROM training_records_keep
-            WHERE start_time >= %s
-        """
-        params = [start_time]
 
-        if exercise_type:
-            query += " AND exercise_type = %s"
-            params.append(exercise_type)
+        try:
+            with self.db_manager.get_session() as session:
+                query = session.query(TrainingRecordKeep)\
+                    .filter(TrainingRecordKeep.start_time >= start_time)\
+                    .order_by(TrainingRecordKeep.start_time.desc())\
+                    .limit(limit)
 
-        query += " ORDER BY start_time DESC LIMIT %s"
-        params.append(limit)
+                orm_results = query.all()
+                records = [self._orm_to_record(obj) for obj in orm_results]
 
-        raw_results = self._execute_query(query, tuple(params))
-        records = [self._row_to_record(row) for row in raw_results]
-
-        return DBResponse(
-            tool_name="search_recent_trainings",
-            parameters=params_for_log,
-            data_source=self.data_source,
-            results=records,
-            results_count=len(records)
-        )
+            return DBResponse(
+                tool_name="search_recent_trainings",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                results=records,
+                results_count=len(records)
+            )
+        except Exception as e:
+            print(f"Keep数据源(ORM)查询错误: {e}")
+            return DBResponse(
+                tool_name="search_recent_trainings",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                error_message=str(e)
+            )
 
     def search_by_date_range(
         self,
         start_date: str,
         end_date: str,
-        exercise_type: Optional[str] = None,
         limit: int = 100
     ) -> DBResponse:
-        """按日期范围查询"""
+        """按日期范围查询 (ORM方式)"""
         params_for_log = {
             'start_date': start_date,
             'end_date': end_date,
-            'exercise_type': exercise_type,
             'limit': limit
         }
-        print(f"--- Keep数据源: 按日期范围查询 (params: {params_for_log}) ---")
+        print(f"--- Keep数据源(ORM): 按日期范围查询 (params: {params_for_log}) ---")
 
         try:
             start_dt = datetime.strptime(start_date, '%Y-%m-%d')
@@ -188,249 +166,211 @@ class KeepDataSearch(BaseTrainingDataSearch):
                 error_message="日期格式错误,请使用 'YYYY-MM-DD' 格式"
             )
 
-        query = """
-            SELECT * FROM training_records_keep
-            WHERE start_time >= %s AND start_time < %s
-        """
-        params = [start_dt, end_dt]
+        try:
+            with self.db_manager.get_session() as session:
+                query = session.query(TrainingRecordKeep)\
+                    .filter(
+                        TrainingRecordKeep.start_time >= start_dt,
+                        TrainingRecordKeep.start_time < end_dt
+                    )\
+                    .order_by(TrainingRecordKeep.start_time.desc())\
+                    .limit(limit)
 
-        if exercise_type:
-            query += " AND exercise_type = %s"
-            params.append(exercise_type)
+                orm_results = query.all()
+                records = [self._orm_to_record(obj) for obj in orm_results]
 
-        query += " ORDER BY start_time DESC LIMIT %s"
-        params.append(limit)
-
-        raw_results = self._execute_query(query, tuple(params))
-        records = [self._row_to_record(row) for row in raw_results]
-
-        return DBResponse(
-            tool_name="search_by_date_range",
-            parameters=params_for_log,
-            data_source=self.data_source,
-            results=records
-        )
+            return DBResponse(
+                tool_name="search_by_date_range",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                results=records
+            )
+        except Exception as e:
+            print(f"Keep数据源(ORM)查询错误: {e}")
+            return DBResponse(
+                tool_name="search_by_date_range",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                error_message=str(e)
+            )
 
     def get_training_stats(
         self,
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        exercise_type: Optional[str] = None
+        end_date: Optional[str] = None
     ) -> DBResponse:
-        """获取训练统计"""
+        """获取训练统计 (ORM方式)"""
         params_for_log = {
             'start_date': start_date,
-            'end_date': end_date,
-            'exercise_type': exercise_type
+            'end_date': end_date
         }
-        print(f"--- Keep数据源: 获取训练统计 (params: {params_for_log}) ---")
+        print(f"--- Keep数据源(ORM): 获取训练统计 (params: {params_for_log}) ---")
 
-        query = """
-            SELECT
-                COUNT(*) as total_sessions,
-                SUM(duration_seconds) as total_duration,
-                AVG(duration_seconds) as avg_duration,
-                SUM(distance_meters) as total_distance,
-                AVG(distance_meters) as avg_distance,
-                AVG(avg_heart_rate) as overall_avg_heart_rate,
-                MAX(max_heart_rate) as peak_heart_rate,
-                SUM(calories) as total_calories
-            FROM training_records_keep
-            WHERE 1=1
-        """
-        params = []
-
-        if start_date:
-            try:
-                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-                query += " AND start_time >= %s"
-                params.append(start_dt)
-            except ValueError:
-                return DBResponse(
-                    tool_name="get_training_stats",
-                    parameters=params_for_log,
-                    data_source=self.data_source,
-                    error_message="开始日期格式错误"
+        try:
+            with self.db_manager.get_session() as session:
+                query = session.query(
+                    func.count(TrainingRecordKeep.id).label('total_sessions'),
+                    func.sum(TrainingRecordKeep.duration_seconds).label('total_duration'),
+                    func.avg(TrainingRecordKeep.duration_seconds).label('avg_duration'),
+                    func.sum(TrainingRecordKeep.distance_meters).label('total_distance'),
+                    func.avg(TrainingRecordKeep.distance_meters).label('avg_distance'),
+                    func.avg(TrainingRecordKeep.avg_heart_rate).label('overall_avg_heart_rate'),
+                    func.max(TrainingRecordKeep.max_heart_rate).label('peak_heart_rate'),
+                    func.sum(TrainingRecordKeep.calories).label('total_calories')
                 )
 
-        if end_date:
-            try:
-                end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
-                query += " AND start_time < %s"
-                params.append(end_dt)
-            except ValueError:
-                return DBResponse(
-                    tool_name="get_training_stats",
-                    parameters=params_for_log,
-                    data_source=self.data_source,
-                    error_message="结束日期格式错误"
-                )
+                # 添加日期过滤
+                if start_date:
+                    try:
+                        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+                        query = query.filter(TrainingRecordKeep.start_time >= start_dt)
+                    except ValueError:
+                        return DBResponse(
+                            tool_name="get_training_stats",
+                            parameters=params_for_log,
+                            data_source=self.data_source,
+                            error_message="开始日期格式错误"
+                        )
 
-        if exercise_type:
-            query += " AND exercise_type = %s"
-            params.append(exercise_type)
+                if end_date:
+                    try:
+                        end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+                        query = query.filter(TrainingRecordKeep.start_time < end_dt)
+                    except ValueError:
+                        return DBResponse(
+                            tool_name="get_training_stats",
+                            parameters=params_for_log,
+                            data_source=self.data_source,
+                            error_message="结束日期格式错误"
+                        )
 
-        raw_results = self._execute_query(query, tuple(params))
-        if not raw_results:
+                result = query.first()
+                if not result or result.total_sessions == 0:
+                    return DBResponse(
+                        tool_name="get_training_stats",
+                        parameters=params_for_log,
+                        data_source=self.data_source,
+                        error_message="未找到数据"
+                    )
+
+                # 转换为字典并计算平均配速
+                stats = {
+                    'total_sessions': result.total_sessions,
+                    'total_duration': result.total_duration,
+                    'avg_duration': result.avg_duration,
+                    'total_distance': result.total_distance,
+                    'avg_distance': result.avg_distance,
+                    'overall_avg_heart_rate': result.overall_avg_heart_rate,
+                    'peak_heart_rate': result.peak_heart_rate,
+                    'total_calories': result.total_calories
+                }
+
+                if stats['total_distance'] and stats['total_distance'] > 0:
+                    total_distance_km = float(stats['total_distance']) / 1000.0
+                    total_duration = float(stats['total_duration']) if stats['total_duration'] else 0.0
+                    avg_pace = total_duration / total_distance_km
+                    stats['avg_pace_per_km'] = round(avg_pace, 2)
+                else:
+                    stats['avg_pace_per_km'] = None
+
             return DBResponse(
                 tool_name="get_training_stats",
                 parameters=params_for_log,
                 data_source=self.data_source,
-                error_message="未找到数据"
+                statistics=stats
             )
-
-        stats = raw_results[0]
-        # 计算平均配速
-        if stats['total_distance'] and stats['total_distance'] > 0:
-            total_distance_km = float(stats['total_distance']) / 1000.0
-            total_duration = float(stats['total_duration']) if stats['total_duration'] else 0.0
-            avg_pace = total_duration / total_distance_km
-            stats['avg_pace_per_km'] = round(avg_pace, 2)
-        else:
-            stats['avg_pace_per_km'] = None
-
-        return DBResponse(
-            tool_name="get_training_stats",
-            parameters=params_for_log,
-            data_source=self.data_source,
-            statistics=stats
-        )
+        except Exception as e:
+            print(f"Keep数据源(ORM)查询错误: {e}")
+            return DBResponse(
+                tool_name="get_training_stats",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                error_message=str(e)
+            )
 
     def search_by_distance_range(
         self,
         min_distance_km: float,
         max_distance_km: Optional[float] = None,
-        exercise_type: Optional[str] = None,
         limit: int = 50
     ) -> DBResponse:
-        """按距离范围查询"""
+        """按距离范围查询 (ORM方式)"""
         params_for_log = {
             'min_distance_km': min_distance_km,
             'max_distance_km': max_distance_km,
-            'exercise_type': exercise_type,
             'limit': limit
         }
-        print(f"--- Keep数据源: 按距离范围查询 (params: {params_for_log}) ---")
+        print(f"--- Keep数据源(ORM): 按距离范围查询 (params: {params_for_log}) ---")
 
         min_meters = min_distance_km * 1000
-        query = "SELECT * FROM training_records_keep WHERE distance_meters >= %s"
-        params = [min_meters]
 
-        if max_distance_km:
-            max_meters = max_distance_km * 1000
-            query += " AND distance_meters <= %s"
-            params.append(max_meters)
+        try:
+            with self.db_manager.get_session() as session:
+                query = session.query(TrainingRecordKeep)\
+                    .filter(TrainingRecordKeep.distance_meters >= min_meters)
 
-        if exercise_type:
-            query += " AND exercise_type = %s"
-            params.append(exercise_type)
+                if max_distance_km:
+                    max_meters = max_distance_km * 1000
+                    query = query.filter(TrainingRecordKeep.distance_meters <= max_meters)
 
-        query += " ORDER BY distance_meters DESC LIMIT %s"
-        params.append(limit)
+                query = query.order_by(TrainingRecordKeep.distance_meters.desc()).limit(limit)
 
-        raw_results = self._execute_query(query, tuple(params))
-        records = [self._row_to_record(row) for row in raw_results]
+                orm_results = query.all()
+                records = [self._orm_to_record(obj) for obj in orm_results]
 
-        return DBResponse(
-            tool_name="search_by_distance_range",
-            parameters=params_for_log,
-            data_source=self.data_source,
-            results=records
-        )
+            return DBResponse(
+                tool_name="search_by_distance_range",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                results=records
+            )
+        except Exception as e:
+            print(f"Keep数据源(ORM)查询错误: {e}")
+            return DBResponse(
+                tool_name="search_by_distance_range",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                error_message=str(e)
+            )
 
     def search_by_heart_rate(
         self,
         min_avg_hr: int,
         max_avg_hr: Optional[int] = None,
-        exercise_type: Optional[str] = None,
         limit: int = 50
     ) -> DBResponse:
-        """按心率区间查询"""
+        """按心率区间查询 (ORM方式)"""
         params_for_log = {
             'min_avg_hr': min_avg_hr,
             'max_avg_hr': max_avg_hr,
-            'exercise_type': exercise_type,
             'limit': limit
         }
-        print(f"--- Keep数据源: 按心率区间查询 (params: {params_for_log}) ---")
+        print(f"--- Keep数据源(ORM): 按心率区间查询 (params: {params_for_log}) ---")
 
-        query = "SELECT * FROM training_records_keep WHERE avg_heart_rate >= %s"
-        params = [min_avg_hr]
+        try:
+            with self.db_manager.get_session() as session:
+                query = session.query(TrainingRecordKeep)\
+                    .filter(TrainingRecordKeep.avg_heart_rate >= min_avg_hr)
 
-        if max_avg_hr:
-            query += " AND avg_heart_rate <= %s"
-            params.append(max_avg_hr)
+                if max_avg_hr:
+                    query = query.filter(TrainingRecordKeep.avg_heart_rate <= max_avg_hr)
 
-        if exercise_type:
-            query += " AND exercise_type = %s"
-            params.append(exercise_type)
+                query = query.order_by(TrainingRecordKeep.start_time.desc()).limit(limit)
 
-        query += " ORDER BY start_time DESC LIMIT %s"
-        params.append(limit)
+                orm_results = query.all()
+                records = [self._orm_to_record(obj) for obj in orm_results]
 
-        raw_results = self._execute_query(query, tuple(params))
-        records = [self._row_to_record(row) for row in raw_results]
-
-        return DBResponse(
-            tool_name="search_by_heart_rate",
-            parameters=params_for_log,
-            data_source=self.data_source,
-            results=records
-        )
-
-    def get_exercise_type_summary(
-        self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
-    ) -> DBResponse:
-        """按运动类型汇总"""
-        params_for_log = {'start_date': start_date, 'end_date': end_date}
-        print(f"--- Keep数据源: 按运动类型汇总 (params: {params_for_log}) ---")
-
-        query = """
-            SELECT
-                exercise_type,
-                COUNT(*) as sessions,
-                SUM(duration_seconds) as total_duration,
-                SUM(distance_meters) as total_distance,
-                AVG(avg_heart_rate) as avg_heart_rate
-            FROM training_records_keep
-            WHERE 1=1
-        """
-        params = []
-
-        if start_date:
-            try:
-                start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-                query += " AND start_time >= %s"
-                params.append(start_dt)
-            except ValueError:
-                return DBResponse(
-                    tool_name="get_exercise_type_summary",
-                    parameters=params_for_log,
-                    data_source=self.data_source,
-                    error_message="开始日期格式错误"
-                )
-
-        if end_date:
-            try:
-                end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
-                query += " AND start_time < %s"
-                params.append(end_dt)
-            except ValueError:
-                return DBResponse(
-                    tool_name="get_exercise_type_summary",
-                    parameters=params_for_log,
-                    data_source=self.data_source,
-                    error_message="结束日期格式错误"
-                )
-
-        query += " GROUP BY exercise_type ORDER BY sessions DESC"
-
-        raw_results = self._execute_query(query, tuple(params))
-        return DBResponse(
-            tool_name="get_exercise_type_summary",
-            parameters=params_for_log,
-            data_source=self.data_source,
-            statistics={'by_type': raw_results}
-        )
+            return DBResponse(
+                tool_name="search_by_heart_rate",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                results=records
+            )
+        except Exception as e:
+            print(f"Keep数据源(ORM)查询错误: {e}")
+            return DBResponse(
+                tool_name="search_by_heart_rate",
+                parameters=params_for_log,
+                data_source=self.data_source,
+                error_message=str(e)
+            )
