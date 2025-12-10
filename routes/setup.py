@@ -18,7 +18,7 @@ from utils.health_check import run_health_check
 # 导入训练数据导入器
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from scripts.training_data_importer import KeepDataImporter as TrainingDataImporter
+from scripts.training_data_importer import KeepDataImporter
 
 
 @setup_bp.route('/setup')
@@ -365,7 +365,7 @@ def upload_training_excel():
         file.save(str(filepath))
 
         # 执行导入(覆盖写入模式)
-        importer = TrainingDataImporter(str(filepath))
+        importer = KeepDataImporter(str(filepath))
         result = importer.run(truncate_first=True)
 
         return jsonify({

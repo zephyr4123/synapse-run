@@ -517,7 +517,3 @@ class GarminDataImporter(BaseImporter):
         # 导入数据库
         result = self.import_to_database(activities, truncate_first)
         return result
-
-
-# 导出便捷类名供routes/setup.py使用
-TrainingDataImporter = KeepDataImporter

@@ -47,7 +47,7 @@
 - **Excel Upload**: Optimized `/api/upload_training_excel` endpoint to use unified new importer architecture
 
 #### 📝 Technical Improvements
-- **Backward Compatibility**: Retained `TrainingDataImporter = KeepDataImporter` alias ensuring seamless migration of existing code
+- **Clear Naming**: Keep imports use `KeepDataImporter`, Garmin imports use `GarminDataImporter`, semantically clear
 - **Error Handling**: Enhanced Garmin login exception capture, providing clear error messages
 - **Code Simplification**: Removed duplicate database engine creation logic, unified into BaseImporter base class
 - **Import Mode**: Unified adoption of overwrite mode (truncate_first=True) to avoid data duplication
@@ -55,7 +55,7 @@
 ### 2025.12.8 - Training Data Import Fix
 - **🔧 Database Connection Fix**: Fixed database authentication failure during Excel training data import
 - **⚡ Configuration Reading Optimization**: Removed unreliable `importlib.reload()` mechanism, now builds database engine directly from config.py
-- **✅ Stability Improvement**: TrainingDataImporter now accurately reads latest database configuration on each initialization, avoiding environment variable interference
+- **✅ Stability Improvement**: Importers now accurately read latest database configuration on each initialization, avoiding environment variable interference
 - **📊 Web Upload Guarantee**: Ensures database connection stability when uploading Excel files through web interface (/setup)
 
 ### 2025.12.8 - Visual Configuration System Launch

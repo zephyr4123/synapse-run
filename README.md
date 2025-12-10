@@ -47,7 +47,7 @@
 - **Excel上传**: 优化`/api/upload_training_excel`接口,统一使用新导入器架构
 
 #### 📝 技术改进
-- **向后兼容**: 保留`TrainingDataImporter = KeepDataImporter`别名,确保现有代码无缝迁移
+- **明确命名**: Keep导入使用`KeepDataImporter`,Garmin导入使用`GarminDataImporter`,语义清晰
 - **错误处理**: 完善Garmin登录异常捕获,提供清晰的错误提示信息
 - **代码简化**: 移除重复的数据库引擎创建逻辑,统一到BaseImporter基类中
 - **导入模式**: 统一采用覆盖写入模式(truncate_first=True),避免数据重复
@@ -55,7 +55,7 @@
 ### 2025.12.8 - 训练数据导入功能修复
 - **🔧 数据库连接修复**: 修复Excel训练数据导入时的数据库认证失败问题
 - **⚡ 配置读取优化**: 移除不可靠的`importlib.reload()`机制,改为直接从config.py构建数据库引擎
-- **✅ 稳定性提升**: TrainingDataImporter现在每次初始化都能准确读取最新的数据库配置,避免环境变量干扰
+- **✅ 稳定性提升**: 导入器现在每次初始化都能准确读取最新的数据库配置,避免环境变量干扰
 - **📊 Web上传保障**: 确保通过Web界面(/setup)上传Excel文件时的数据库连接稳定性
 ### 2025.12.8 - 可视化配置系统上线
 - **🎨 可视化配置界面**: 新增Web可视化配置页面(`/setup`),支持LLM API、搜索API、MySQL数据库的可视化配置
