@@ -14,16 +14,28 @@ import config
 # 创建基类
 Base = declarative_base()
 
-# 创建数据库引擎
-engine = create_engine(
-    f'mysql+pymysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}?charset={config.DB_CHARSET}',
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    echo=False
-)
+# 延迟创建引擎的函数
+def get_engine():
+    """
+    获取数据库引擎，每次调用都重新读取config配置
+    这样可以确保在setup页面修改配置后能使用最新配置
+    """
+    return create_engine(
+        f'mysql+pymysql://{config.DB_USER}:{config.DB_PASSWORD}@{config.DB_HOST}:{config.DB_PORT}/{config.DB_NAME}?charset={config.DB_CHARSET}',
+        pool_pre_ping=True,
+        pool_recycle=3600,
+        echo=False
+    )
 
-# 创建Session类
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+# 获取Session的函数
+def get_session_local():
+    """获取SessionLocal类，使用最新的engine配置"""
+    engine = get_engine()
+    return sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+# 为了兼容性，保留原来的变量名，但改为函数调用
+engine = get_engine()
+SessionLocal = get_session_local()
 
 
 class TrainingRecordKeep(Base):

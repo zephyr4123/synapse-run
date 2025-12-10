@@ -16,13 +16,41 @@
 
 ## 📢 更新日志
 
-### 2025.12.10 - 多数据源支持系统上线
-- **🔄 多数据源架构**: 新增`TrainingRecordManager`类,支持Keep和Garmin两种训练数据格式的动态切换
-- **📊 Garmin数据支持**: 新增`TrainingRecordGarmin`模型,支持40+专业运动指标(心率区间、功率区间、步频步幅、训练负荷等)
-- **⚙️ 字段映射系统**: 实现智能字段映射机制,自动适配不同数据源的字段差异(如Keep的`start_time` ↔ Garmin的`start_time_gmt`)
-- **🔌 API扩展**: 新增`/api/current_source`和`/api/switch_source`接口,支持运行时切换数据源
-- **💾 数据库优化**: 添加`training_records_garmin`表和独立统计视图,保持Keep和Garmin数据完全隔离
-- **📥 导入工具升级**: `import_training_data.py`支持`--source`参数,可分别导入Keep或Garmin数据
+### 2025.12.10 - 训练数据导入系统重构与多数据源整合
+
+#### 🔄 核心架构升级
+- **统一导入模块**: 合并`import_training_data.py`和`import_garmin_data.py`为统一模块`training_data_importer.py`
+- **API专用设计**: 移除所有CLI命令行功能,专注于后端API调用接口,提升系统架构的纯净性
+- **基类架构**: 新增`BaseImporter`基类,统一数据库引擎初始化逻辑,便于扩展更多数据源
+
+#### 📦 导入器重构
+- **Keep导入器** (`KeepDataImporter`): Excel文件导入,支持.xlsx/.xls/.csv格式,批量提交优化(100条/批次)
+- **Garmin导入器** (`GarminDataImporter`): Garmin Connect在线数据抓取,自动登录+活动过滤+批量导入
+- **懒加载引擎**: 数据库引擎采用懒加载模式,直接从config.py读取最新配置,避免importlib.reload不确定性
+
+#### 🎨 Web界面增强
+- **可视化数据源选择**: 新增数据源选择界面,支持Keep和Garmin两种数据源的可视化切换
+- **Garmin在线导入**: 在Web界面直接输入Garmin账户,一键抓取跑步数据(支持中国区/国际区账户)
+- **测试登录功能**: 支持Garmin登录测试,验证账户可用性后再执行数据导入
+- **导入结果反馈**: 实时显示导入统计(成功/失败条数),提供详细的操作反馈
+
+#### 🗄️ 数据库架构优化
+- **多数据源支持**: 新增`TrainingRecordManager`类,支持Keep和Garmin两种训练数据格式的动态切换
+- **Garmin数据模型**: 新增`TrainingRecordGarmin`表,支持40+专业运动指标(心率区间、功率区间、步频步幅、训练负荷等)
+- **字段映射系统**: 实现智能字段映射机制,自动适配不同数据源的字段差异(如Keep的`start_time` ↔ Garmin的`start_time_gmt`)
+- **数据隔离**: Keep和Garmin数据存储在独立表中,互不干扰,支持独立统计视图
+
+#### 🔌 API接口扩展
+- **数据源管理**: 新增`/api/test_garmin_login`接口,支持Garmin账户登录测试
+- **在线导入**: 新增`/api/import_garmin_data`接口,支持Garmin Connect在线数据抓取与导入
+- **配置管理**: 优化`/api/save_config`接口,支持保存Garmin账户信息到配置文件
+- **Excel上传**: 优化`/api/upload_training_excel`接口,统一使用新导入器架构
+
+#### 📝 技术改进
+- **向后兼容**: 保留`TrainingDataImporter = KeepDataImporter`别名,确保现有代码无缝迁移
+- **错误处理**: 完善Garmin登录异常捕获,提供清晰的错误提示信息
+- **代码简化**: 移除重复的数据库引擎创建逻辑,统一到BaseImporter基类中
+- **导入模式**: 统一采用覆盖写入模式(truncate_first=True),避免数据重复
 
 ### 2025.12.8 - 训练数据导入功能修复
 - **🔧 数据库连接修复**: 修复Excel训练数据导入时的数据库认证失败问题

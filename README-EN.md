@@ -16,13 +16,41 @@
 
 ## 📢 Changelog
 
-### 2025.12.10 - Multi-Data-Source Support System Launch
-- **🔄 Multi-Data-Source Architecture**: Introduced `TrainingRecordManager` class supporting dynamic switching between Keep and Garmin training data formats
-- **📊 Garmin Data Support**: Added `TrainingRecordGarmin` model with 40+ professional sport metrics (heart rate zones, power zones, cadence/stride, training load, etc.)
-- **⚙️ Field Mapping System**: Implemented intelligent field mapping mechanism to automatically adapt field differences between data sources (e.g., Keep's `start_time` ↔ Garmin's `start_time_gmt`)
-- **🔌 API Extension**: Added `/api/current_source` and `/api/switch_source` endpoints supporting runtime data source switching
-- **💾 Database Optimization**: Added `training_records_garmin` table and separate statistics views, keeping Keep and Garmin data completely isolated
-- **📥 Import Tool Upgrade**: `import_training_data.py` now supports `--source` parameter to import Keep or Garmin data separately
+### 2025.12.10 - Training Data Import System Refactoring & Multi-Data-Source Integration
+
+#### 🔄 Core Architecture Upgrade
+- **Unified Import Module**: Merged `import_training_data.py` and `import_garmin_data.py` into a unified module `training_data_importer.py`
+- **API-Focused Design**: Removed all CLI command-line functionality, focused on backend API interfaces, improving system architecture purity
+- **Base Class Architecture**: Added `BaseImporter` base class to unify database engine initialization logic, facilitating expansion to more data sources
+
+#### 📦 Importer Refactoring
+- **Keep Importer** (`KeepDataImporter`): Excel file import supporting .xlsx/.xls/.csv formats, batch submission optimization (100 records/batch)
+- **Garmin Importer** (`GarminDataImporter`): Garmin Connect online data fetching, auto-login + activity filtering + batch import
+- **Lazy-Loading Engine**: Database engine uses lazy-loading mode, reads latest config directly from config.py, avoiding importlib.reload uncertainty
+
+#### 🎨 Web Interface Enhancement
+- **Visual Data Source Selection**: Added data source selection interface supporting visual switching between Keep and Garmin data sources
+- **Garmin Online Import**: Input Garmin account credentials directly in web interface, one-click fetch running data (supports China/International accounts)
+- **Login Test Functionality**: Support Garmin login testing, verify account availability before data import
+- **Import Result Feedback**: Real-time display of import statistics (success/failure counts), providing detailed operation feedback
+
+#### 🗄️ Database Architecture Optimization
+- **Multi-Data-Source Support**: Added `TrainingRecordManager` class supporting dynamic switching between Keep and Garmin training data formats
+- **Garmin Data Model**: Added `TrainingRecordGarmin` table with 40+ professional sport metrics (heart rate zones, power zones, cadence/stride, training load, etc.)
+- **Field Mapping System**: Implemented intelligent field mapping mechanism to automatically adapt field differences between data sources (e.g., Keep's `start_time` ↔ Garmin's `start_time_gmt`)
+- **Data Isolation**: Keep and Garmin data stored in separate tables without interference, supporting independent statistics views
+
+#### 🔌 API Interface Extension
+- **Data Source Management**: Added `/api/test_garmin_login` endpoint supporting Garmin account login testing
+- **Online Import**: Added `/api/import_garmin_data` endpoint supporting Garmin Connect online data fetching and import
+- **Configuration Management**: Optimized `/api/save_config` endpoint to support saving Garmin account credentials to configuration file
+- **Excel Upload**: Optimized `/api/upload_training_excel` endpoint to use unified new importer architecture
+
+#### 📝 Technical Improvements
+- **Backward Compatibility**: Retained `TrainingDataImporter = KeepDataImporter` alias ensuring seamless migration of existing code
+- **Error Handling**: Enhanced Garmin login exception capture, providing clear error messages
+- **Code Simplification**: Removed duplicate database engine creation logic, unified into BaseImporter base class
+- **Import Mode**: Unified adoption of overwrite mode (truncate_first=True) to avoid data duplication
 
 ### 2025.12.8 - Training Data Import Fix
 - **🔧 Database Connection Fix**: Fixed database authentication failure during Excel training data import

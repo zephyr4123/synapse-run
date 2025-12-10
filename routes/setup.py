@@ -18,7 +18,7 @@ from utils.health_check import run_health_check
 # 导入训练数据导入器
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from scripts.import_training_data import TrainingDataImporter
+from scripts.training_data_importer import KeepDataImporter as TrainingDataImporter
 
 
 @setup_bp.route('/setup')
@@ -70,7 +70,10 @@ def get_config():
             'db_port': extract_config_value(content, 'DB_PORT'),
             'db_user': extract_config_value(content, 'DB_USER'),
             'db_password': extract_config_value(content, 'DB_PASSWORD'),
-            'db_name': extract_config_value(content, 'DB_NAME')
+            'db_name': extract_config_value(content, 'DB_NAME'),
+            'training_data_source': extract_config_value(content, 'TRAINING_DATA_SOURCE'),
+            'garmin_email': extract_config_value(content, 'GARMIN_EMAIL'),
+            'garmin_password': extract_config_value(content, 'GARMIN_PASSWORD')
         }
 
         return jsonify({
@@ -120,7 +123,10 @@ def save_config():
             'DB_PORT': data.get('db_port'),
             'DB_USER': data.get('db_user'),
             'DB_PASSWORD': data.get('db_password'),
-            'DB_NAME': data.get('db_name')
+            'DB_NAME': data.get('db_name'),
+            'TRAINING_DATA_SOURCE': data.get('training_data_source'),
+            'GARMIN_EMAIL': data.get('garmin_email'),
+            'GARMIN_PASSWORD': data.get('garmin_password')
         }
 
         # 替换配置值
@@ -446,3 +452,78 @@ def init_database():
             'success': False,
             'message': f'数据库初始化失败: {str(e)}'
         })
+
+
+@setup_bp.route('/api/test_garmin_login', methods=['POST'])
+def test_garmin_login():
+    """测试Garmin登录"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        is_cn = data.get('is_cn', True)
+
+        if not email or not password:
+            return jsonify({
+                'success': False,
+                'message': '邮箱和密码不能为空'
+            })
+
+        # 测试登录
+        from scripts.training_data_importer import GarminDataImporter
+        importer = GarminDataImporter(email, password, is_cn)
+        importer.login()
+
+        return jsonify({
+            'success': True,
+            'message': 'Garmin登录成功'
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Garmin登录失败: {str(e)}'
+        })
+
+
+@setup_bp.route('/api/import_garmin_data', methods=['POST'])
+def import_garmin_data():
+    """导入Garmin数据"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        is_cn = data.get('is_cn', True)
+
+        if not email or not password:
+            return jsonify({
+                'success': False,
+                'message': '邮箱和密码不能为空'
+            }), 400
+
+        # 执行导入
+        from scripts.training_data_importer import GarminDataImporter
+        importer = GarminDataImporter(email, password, is_cn)
+        result = importer.run(truncate_first=True)
+
+        if 'error' in result:
+            return jsonify({
+                'success': False,
+                'message': result['error']
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Garmin数据导入成功! 共{result["success"]}条记录',
+            'result': result
+        })
+
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Garmin数据导入失败: {error_detail}")
+
+        return jsonify({
+            'success': False,
+            'message': f'导入失败: {str(e)}'
+        }), 500

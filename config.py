@@ -16,7 +16,12 @@ DB_CHARSET = "utf8mb4"          # 字符集,建议使用utf8mb4
 
 # 训练数据源配置
 # 支持的数据源: 'keep' (Keep运动APP) 或 'garmin' (Garmin设备)
-TRAINING_DATA_SOURCE = "keep"
+TRAINING_DATA_SOURCE = "garmin"
+
+# Garmin账户配置(仅当TRAINING_DATA_SOURCE为garmin时需要)
+GARMIN_EMAIL = ""
+GARMIN_PASSWORD = ""
+GARMIN_IS_CN = True  # True: 中国区账户, False: 国际区账户
 
 
 # ============================== LLM配置 ==============================

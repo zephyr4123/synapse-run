@@ -387,6 +387,30 @@
             height: 100%;
         }
 
+        /* 数据源选择视图 */
+        #dataSourceView {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* Keep导入视图 */
+        #importView {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* Garmin导入视图 */
+        #garminImportView {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+        }
+
         /* 响应式适配 */
         @media (max-width: 768px) {
             body {
@@ -462,9 +486,9 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
                     重新检查
                 </button>
-                <button class="action-btn primary hidden" id="importDataButton" onclick="showImportForm()">
+                <button class="action-btn primary hidden" id="importDataButton" onclick="showDataSourceSelection()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    导入训练数据
+                    导��训练数据
                 </button>
                 <button class="action-btn primary hidden" id="configButton" onclick="showConfigForm()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6m-8-6h6m6 0h6"></path></svg>
@@ -577,7 +601,54 @@
             </form>
         </div>
 
-        <!-- 数据导入视图 -->
+        <!-- 数据源选择视图 -->
+        <div id="dataSourceView" class="hidden">
+            <header>
+                <div class="brand">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <div>
+                        <h1>选择数据源</h1>
+                        <p>Choose Training Data Source</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="config-section">
+                <div class="alert" style="background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd;">
+                    <strong>ℹ️ 数据源说明</strong><br>
+                    • <strong>Keep</strong>: 支持上传Keep运动APP导出的Excel文件<br>
+                    • <strong>Garmin</strong>: 自动从Garmin Connect抓取跑步数据,无需手动导出
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;">
+                    <!-- Keep卡片 -->
+                    <div onclick="selectDataSource('keep')" style="cursor: pointer; padding: 30px; border: 2px solid var(--border-color); border-radius: 12px; text-align: center; transition: all 0.3s;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 20px;">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <h3 style="font-size: 18px; margin-bottom: 10px;">Keep运动</h3>
+                        <p style="font-size: 13px; color: var(--text-sub);">上传Excel文件导入</p>
+                    </div>
+
+                    <!-- Garmin卡片 -->
+                    <div onclick="selectDataSource('garmin')" style="cursor: pointer; padding: 30px; border: 2px solid var(--border-color); border-radius: 12px; text-align: center; transition: all 0.3s;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 20px;">
+                            <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <h3 style="font-size: 18px; margin-bottom: 10px;">Garmin Connect</h3>
+                        <p style="font-size: 13px; color: var(--text-sub);">自动抓取训练数据</p>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button type="button" class="action-btn secondary" onclick="hideDataSourceSelection()">返回</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keep数据导入视图 -->
         <div id="importView" class="hidden">
             <header>
                 <div class="brand">
@@ -616,6 +687,63 @@
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="button" class="action-btn secondary" onclick="hideImportForm()">返回</button>
                     <button type="button" class="action-btn primary hidden" id="startImportButton" onclick="startImport()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        开始导入
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Garmin数据导入视图 -->
+        <div id="garminImportView" class="hidden">
+            <header>
+                <div class="brand">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <div>
+                        <h1>Garmin数据导入</h1>
+                        <p>Import from Garmin Connect</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="config-section">
+                <div class="alert" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;">
+                    <strong>ℹ️ Garmin导入说明</strong><br>
+                    • 输入您的Garmin Connect账户信息<br>
+                    • 系统将自动登录并抓取您的跑步训练数据<br>
+                    • 导入将覆盖现有所有训练记录<br>
+                    • 仅抓取跑步相关活动(running/treadmill)
+                </div>
+
+                <div class="form-group">
+                    <label for="garminEmail">Garmin邮箱 *</label>
+                    <input type="email" id="garminEmail" placeholder="your.email@example.com" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                </div>
+
+                <div class="form-group">
+                    <label for="garminPassword">Garmin密码 *</label>
+                    <input type="password" id="garminPassword" placeholder="请输入密码" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="garminIsCN" checked style="margin-right: 8px;">
+                        中国区账户
+                    </label>
+                    <p style="font-size: 12px; color: var(--text-sub); margin-top: 5px;">如果您的账户是通过Garmin中国注册的,请勾选此项</p>
+                </div>
+
+                <div class="test-result hidden" id="garminTestResult"></div>
+
+                <button type="button" class="action-btn secondary" onclick="testGarminLogin()" style="margin-top: 10px;">测试Garmin登录</button>
+
+                <div class="test-result hidden" id="garminImportResult" style="margin-top: 20px;"></div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="action-btn secondary" onclick="hideGarminImportForm()">返回</button>
+                    <button type="button" class="action-btn primary" id="startGarminImportButton" onclick="startGarminImport()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         开始导入
                     </button>
@@ -963,7 +1091,13 @@
 
         // 显示数据导入表单
         function showImportForm() {
+            // 隐藏所有其他视图
             document.getElementById('healthCheckView').classList.add('hidden');
+            document.getElementById('dataSourceView').classList.add('hidden');
+            document.getElementById('garminImportView').classList.add('hidden');
+            document.getElementById('configView').classList.add('hidden');
+
+            // 显示Keep导入视图
             document.getElementById('importView').classList.remove('hidden');
             resetImportForm();
         }
@@ -971,7 +1105,7 @@
         // 隐藏数据导入表单
         function hideImportForm() {
             document.getElementById('importView').classList.add('hidden');
-            document.getElementById('healthCheckView').classList.remove('hidden');
+            document.getElementById('dataSourceView').classList.remove('hidden');
         }
 
         // 重置导入表单
@@ -1003,6 +1137,205 @@
             selectedImportExcelFile = file;
             document.getElementById('importSelectedFileName').textContent = file.name;
             document.getElementById('startImportButton').classList.remove('hidden');
+        }
+
+        // 显示数据源选择
+        function showDataSourceSelection() {
+            // 隐藏所有其他视图
+            document.getElementById('healthCheckView').classList.add('hidden');
+            document.getElementById('importView').classList.add('hidden');
+            document.getElementById('garminImportView').classList.add('hidden');
+            document.getElementById('configView').classList.add('hidden');
+
+            // 显示数据源选择视图
+            document.getElementById('dataSourceView').classList.remove('hidden');
+        }
+
+        // 隐藏数据源选择
+        function hideDataSourceSelection() {
+            document.getElementById('dataSourceView').classList.add('hidden');
+            document.getElementById('healthCheckView').classList.remove('hidden');
+        }
+
+        // 选择数据源
+        function selectDataSource(source) {
+            // 保存数据源到配置
+            fetch('/api/save_config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({training_data_source: source})
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // 先隐藏数据源选择视图
+                    document.getElementById('dataSourceView').classList.add('hidden');
+
+                    // 根据数据源跳转到不同的导入界面
+                    if (source === 'keep') {
+                        showImportForm();
+                    } else if (source === 'garmin') {
+                        showGarminImportForm();
+                    }
+                } else {
+                    alert('保存数据源配置失败: ' + result.message);
+                }
+            })
+            .catch(error => {
+                alert('保存数据源配置失败: ' + error.message);
+            });
+        }
+
+        // 显示Garmin导入表单
+        function showGarminImportForm() {
+            // 隐藏所有其他视图
+            document.getElementById('healthCheckView').classList.add('hidden');
+            document.getElementById('dataSourceView').classList.add('hidden');
+            document.getElementById('importView').classList.add('hidden');
+            document.getElementById('configView').classList.add('hidden');
+
+            // 显示Garmin导入视图
+            document.getElementById('garminImportView').classList.remove('hidden');
+
+            // 重置Garmin导入表单
+            resetGarminImportForm();
+
+            // 从配置加载Garmin账户信息
+            fetch('/api/get_config')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('garminEmail').value = data.data.garmin_email || '';
+                        document.getElementById('garminPassword').value = data.data.garmin_password || '';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载配置失败:', error);
+                });
+        }
+
+        // 隐藏Garmin导入表单
+        function hideGarminImportForm() {
+            document.getElementById('garminImportView').classList.add('hidden');
+            document.getElementById('dataSourceView').classList.remove('hidden');
+        }
+
+        // 重置Garmin导入表单
+        function resetGarminImportForm() {
+            const garminTestResult = document.getElementById('garminTestResult');
+            garminTestResult.classList.add('hidden');
+            garminTestResult.className = 'test-result hidden';
+            garminTestResult.innerHTML = '';
+
+            const garminImportResult = document.getElementById('garminImportResult');
+            garminImportResult.classList.add('hidden');
+            garminImportResult.className = 'test-result hidden';
+            garminImportResult.innerHTML = '';
+
+            const startGarminImportButton = document.getElementById('startGarminImportButton');
+            startGarminImportButton.disabled = false;
+        }
+
+        // 测试Garmin登录
+        function testGarminLogin() {
+            const resultDiv = document.getElementById('garminTestResult');
+            const email = document.getElementById('garminEmail').value;
+            const password = document.getElementById('garminPassword').value;
+            const isCN = document.getElementById('garminIsCN').checked;
+
+            if (!email || !password) {
+                alert('请输入Garmin邮箱和密码');
+                return;
+            }
+
+            resultDiv.className = 'test-result';
+            resultDiv.innerHTML = '<div class="loading"></div> 正在测试Garmin登录...';
+            resultDiv.classList.remove('hidden');
+
+            fetch('/api/test_garmin_login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                    is_cn: isCN
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.textContent = '✅ ' + result.message;
+                } else {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.textContent = '❌ ' + result.message;
+                }
+            })
+            .catch(error => {
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = '❌ 测试失败: ' + error.message;
+            });
+        }
+
+        // 开始Garmin导入
+        function startGarminImport() {
+            const email = document.getElementById('garminEmail').value;
+            const password = document.getElementById('garminPassword').value;
+            const isCN = document.getElementById('garminIsCN').checked;
+
+            if (!email || !password) {
+                alert('请输入Garmin邮箱和密码');
+                return;
+            }
+
+            if (!confirm('确认从Garmin Connect导入数据吗?\n\n⚠️ 这将覆盖现有的所有训练记录!')) {
+                return;
+            }
+
+            const resultDiv = document.getElementById('garminImportResult');
+            const importButton = document.getElementById('startGarminImportButton');
+
+            resultDiv.className = 'test-result';
+            resultDiv.innerHTML = '<div class="loading"></div> 正在登录Garmin并抓取数据,请稍候...(可能需要1-2分钟)';
+            resultDiv.classList.remove('hidden');
+            importButton.disabled = true;
+
+            fetch('/api/import_garmin_data', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    email: email,
+                    password: password,
+                    is_cn: isCN
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                importButton.disabled = false;
+
+                if (result.success) {
+                    resultDiv.className = 'test-result success';
+                    resultDiv.innerHTML = `✅ ${result.message}<br><small>成功: ${result.result.success}条 | 失败: ${result.result.failed}条</small>`;
+
+                    // 同时保存账户到配置
+                    fetch('/api/save_config', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            garmin_email: email,
+                            garmin_password: password
+                        })
+                    });
+                } else {
+                    resultDiv.className = 'test-result error';
+                    resultDiv.textContent = '❌ ' + result.message;
+                }
+            })
+            .catch(error => {
+                importButton.disabled = false;
+                resultDiv.className = 'test-result error';
+                resultDiv.textContent = '❌ 导入失败: ' + error.message;
+            });
         }
 
         // 开始导入
