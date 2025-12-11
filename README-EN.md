@@ -16,7 +16,7 @@
 
 ## 🎉 v1.0.0 Official Release
 
-**Release Date**: December 2025
+**Release Date**: 11th December 2025 
 
 ### ✨ Major Updates
 
