@@ -6,20 +6,34 @@
 from flask import Blueprint, render_template, request, jsonify
 from datetime import datetime
 from models.training_record import TrainingRecordManager, SessionLocal
-import config
+from utils.config_reloader import get_config_value
 import json
 import time
 
 training_data_bp = Blueprint('training_data', __name__, url_prefix='/training')
 
-# 创建训练记录管理器，从config.py读取数据源配置
-record_manager = TrainingRecordManager(data_source=config.TRAINING_DATA_SOURCE)
+
+def get_record_manager():
+    """
+    获取训练记录管理器（支持配置热重载）
+
+    每次调用都会读取最新的TRAINING_DATA_SOURCE配置
+    """
+    data_source = get_config_value('TRAINING_DATA_SOURCE', 'keep')
+    return TrainingRecordManager(data_source=data_source)
 
 
 @training_data_bp.route('/')
 def index():
-    """训练数据管理主页"""
-    return render_template('training_data.html')
+    """训练数据管理主页 - 根据数据源渲染不同页面"""
+    # 获取当前数据源配置
+    data_source = get_config_value('TRAINING_DATA_SOURCE', 'keep')
+
+    # 根据数据源渲染不同模板
+    if data_source == 'garmin':
+        return render_template('training_data_garmin.html')
+    else:  # keep
+        return render_template('training_data.html')
 
 
 @training_data_bp.route('/api/records', methods=['GET'])
@@ -32,11 +46,11 @@ def get_records():
         per_page = int(request.args.get('per_page', 20))
 
         # 查询总数
-        total = record_manager.query(session).count()
+        total = get_record_manager().query(session).count()
 
         # 分页查询
-        start_time_field = record_manager.get_field('start_time')
-        records = record_manager.query(session)\
+        start_time_field = get_record_manager().get_field('start_time')
+        records = get_record_manager().query(session)\
             .order_by(start_time_field.desc())\
             .limit(per_page)\
             .offset((page - 1) * per_page)\
@@ -93,7 +107,7 @@ def add_record():
 
         # 创建记录
         current_ts = int(time.time())
-        record = record_manager.create_record(
+        record = get_record_manager().create_record(
             user_id=data.get('user_id', 'default_user'),
             exercise_type=data['exercise_type'],
             duration_seconds=int(data['duration_seconds']),
@@ -130,8 +144,8 @@ def get_record(record_id):
     """获取单个训练记录"""
     session = SessionLocal()
     try:
-        Model = record_manager.get_model_class()
-        record = record_manager.query(session).filter(Model.id == record_id).first()
+        Model = get_record_manager().get_model_class()
+        record = get_record_manager().query(session).filter(Model.id == record_id).first()
         if not record:
             return jsonify({'success': False, 'message': '记录不存在'}), 404
 
@@ -150,8 +164,8 @@ def update_record(record_id):
     """更新训练记录"""
     session = SessionLocal()
     try:
-        Model = record_manager.get_model_class()
-        record = record_manager.query(session).filter(Model.id == record_id).first()
+        Model = get_record_manager().get_model_class()
+        record = get_record_manager().query(session).filter(Model.id == record_id).first()
         if not record:
             return jsonify({'success': False, 'message': '记录不存在'}), 404
 
@@ -213,8 +227,8 @@ def delete_record(record_id):
     """删除训练记录"""
     session = SessionLocal()
     try:
-        Model = record_manager.get_model_class()
-        record = record_manager.query(session).filter(Model.id == record_id).first()
+        Model = get_record_manager().get_model_class()
+        record = get_record_manager().query(session).filter(Model.id == record_id).first()
         if not record:
             return jsonify({'success': False, 'message': '记录不存在'}), 404
 
@@ -238,8 +252,8 @@ def get_exercise_types():
     session = SessionLocal()
     try:
         # 从数据库中查询所有不同的运动类型
-        exercise_type_field = record_manager.get_field('exercise_type')
-        exercise_types = record_manager.query(session)\
+        exercise_type_field = get_record_manager().get_field('exercise_type')
+        exercise_types = get_record_manager().query(session)\
             .with_entities(exercise_type_field)\
             .distinct()\
             .order_by(exercise_type_field)\
@@ -291,8 +305,8 @@ def get_current_source():
     return jsonify({
         'success': True,
         'data': {
-            'source': record_manager.data_source,
-            'available_sources': list(record_manager.DATA_SOURCE_MAP.keys())
+            'source': get_record_manager().data_source,
+            'available_sources': list(get_record_manager().DATA_SOURCE_MAP.keys())
         }
     })
 
@@ -307,17 +321,60 @@ def switch_source():
         if not new_source:
             return jsonify({'success': False, 'message': '缺少source参数'}), 400
 
-        record_manager.switch_source(new_source)
+        get_record_manager().switch_source(new_source)
 
         return jsonify({
             'success': True,
             'message': f'数据源已切换到: {new_source}',
             'data': {
-                'source': record_manager.data_source,
-                'model_class': record_manager.get_model_class().__name__
+                'source': get_record_manager().data_source,
+                'model_class': get_record_manager().get_model_class().__name__
             }
         })
     except ValueError as e:
         return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
         return jsonify({'success': False, 'message': f'切换失败: {str(e)}'}), 500
+
+
+@training_data_bp.route('/api/sync_garmin_data', methods=['POST'])
+def sync_garmin_data():
+    """同步Garmin数据 - 调用setup页面的导入逻辑"""
+    try:
+        # 从config读取Garmin配置
+        garmin_email = get_config_value('GARMIN_EMAIL', '')
+        garmin_password = get_config_value('GARMIN_PASSWORD', '')
+        garmin_is_cn = get_config_value('GARMIN_IS_CN', True)
+
+        if not garmin_email or not garmin_password:
+            return jsonify({
+                'success': False,
+                'message': 'Garmin账户配置不完整,请先在config.py中配置GARMIN_EMAIL和GARMIN_PASSWORD'
+            }), 400
+
+        # 执行导入
+        from scripts.training_data_importer import GarminDataImporter
+        importer = GarminDataImporter(garmin_email, garmin_password, garmin_is_cn)
+        result = importer.run(truncate_first=True)
+
+        if 'error' in result:
+            return jsonify({
+                'success': False,
+                'message': result['error']
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Garmin数据同步成功! 共导入{result["success"]}条记录',
+            'result': result
+        })
+
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Garmin数据同步失败: {error_detail}")
+
+        return jsonify({
+            'success': False,
+            'message': f'同步失败: {str(e)}'
+        }), 500

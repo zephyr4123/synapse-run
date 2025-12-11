@@ -155,22 +155,45 @@ class TrainingRecordGarmin(Base):
         return f'<TrainingRecordGarmin(id={self.id}, sport_type={self.sport_type}, start_time_gmt={self.start_time_gmt})>'
 
     def to_dict(self):
-        """转换为字典格式"""
+        """
+        转换为字典格式
+        返回两套字段名:
+        1. Garmin原生字段 (sport_type, start_time_gmt, activity_calories等)
+        2. Keep兼容字段 (exercise_type, start_time, calories等) - 用于前端通用显示
+        """
         return {
+            # 基础字段
             'id': self.id,
             'user_id': self.user_id,
+
+            # Garmin原生字段
             'activity_id': self.activity_id,
             'activity_name': self.activity_name,
             'sport_type': self.sport_type,
             'start_time_gmt': self.start_time_gmt.strftime('%Y-%m-%d %H:%M:%S') if self.start_time_gmt else None,
             'end_time_gmt': self.end_time_gmt.strftime('%Y-%m-%d %H:%M:%S') if self.end_time_gmt else None,
+
+            # Keep兼容字段 (前端通用显示)
+            'exercise_type': self.sport_type,  # 映射到exercise_type
+            'start_time': self.start_time_gmt.strftime('%Y-%m-%d %H:%M:%S') if self.start_time_gmt else None,  # 映射到start_time
+            'end_time': self.end_time_gmt.strftime('%Y-%m-%d %H:%M:%S') if self.end_time_gmt else None,  # 映射到end_time
+            'calories': self.activity_calories,  # 映射到calories
+
+            # 共享字段
             'duration_seconds': self.duration_seconds,
             'distance_meters': float(self.distance_meters) if self.distance_meters else None,
             'avg_heart_rate': self.avg_heart_rate,
             'max_heart_rate': self.max_heart_rate,
+
+            # Garmin特有字段
             'avg_cadence': self.avg_cadence,
             'avg_power_watts': self.avg_power_watts,
             'training_load': self.training_load,
+            'aerobic_training_effect': float(self.aerobic_training_effect) if self.aerobic_training_effect else None,
+            'anaerobic_training_effect': float(self.anaerobic_training_effect) if self.anaerobic_training_effect else None,
+            'training_effect_label': self.training_effect_label,
+
+            # 元数据
             'add_ts': self.add_ts,
             'last_modify_ts': self.last_modify_ts,
             'data_source': self.data_source

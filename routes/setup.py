@@ -111,6 +111,24 @@ def save_config():
         with open(config_file, 'r', encoding='utf-8') as f:
             content = f.read()
 
+        # 记录旧配置值（用于变更检测）
+        old_config_values = {
+            'LLM_API_KEY': extract_config_value(content, 'LLM_API_KEY'),
+            'LLM_BASE_URL': extract_config_value(content, 'LLM_BASE_URL'),
+            'DEFAULT_MODEL_NAME': extract_config_value(content, 'DEFAULT_MODEL_NAME'),
+            'REPORT_MODEL_NAME': extract_config_value(content, 'REPORT_MODEL_NAME'),
+            'TAVILY_API_KEY': extract_config_value(content, 'TAVILY_API_KEY'),
+            'BOCHA_WEB_SEARCH_API_KEY': extract_config_value(content, 'BOCHA_WEB_SEARCH_API_KEY'),
+            'DB_HOST': extract_config_value(content, 'DB_HOST'),
+            'DB_PORT': extract_config_value(content, 'DB_PORT'),
+            'DB_USER': extract_config_value(content, 'DB_USER'),
+            'DB_PASSWORD': extract_config_value(content, 'DB_PASSWORD'),
+            'DB_NAME': extract_config_value(content, 'DB_NAME'),
+            'TRAINING_DATA_SOURCE': extract_config_value(content, 'TRAINING_DATA_SOURCE'),
+            'GARMIN_EMAIL': extract_config_value(content, 'GARMIN_EMAIL'),
+            'GARMIN_PASSWORD': extract_config_value(content, 'GARMIN_PASSWORD')
+        }
+
         # 更新配置项
         updates = {
             'LLM_API_KEY': data.get('llm_api_key'),
@@ -527,3 +545,5 @@ def import_garmin_data():
             'success': False,
             'message': f'导入失败: {str(e)}'
         }), 500
+
+

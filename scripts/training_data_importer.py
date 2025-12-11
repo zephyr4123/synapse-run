@@ -200,17 +200,10 @@ class KeepDataImporter(BaseImporter):
             dict: 导入结果统计
         """
         try:
-            # 加载数据
             df = self.load_data()
-
-            # 清洗数据
             df = self.clean_data(df)
-
-            # 导入数据库
             result = self.import_to_database(df, truncate_first=truncate_first)
-
             return result
-
         except Exception as e:
             raise e
 
@@ -505,15 +498,15 @@ class GarminDataImporter(BaseImporter):
         Returns:
             dict: 导入统计
         """
-        # 登录
-        if not self.login():
-            return {'success': 0, 'failed': 0, 'total': 0, 'error': '登录失败'}
+        try:
+            if not self.login():
+                return {'success': 0, 'failed': 0, 'total': 0, 'error': '登录失败'}
 
-        # 抓取数据
-        activities = self.fetch_activities()
-        if not activities:
-            return {'success': 0, 'failed': 0, 'total': 0, 'error': '没有可导入的跑步数据'}
+            activities = self.fetch_activities()
+            if not activities:
+                return {'success': 0, 'failed': 0, 'total': 0, 'error': '没有可导入的跑步数据'}
 
-        # 导入数据库
-        result = self.import_to_database(activities, truncate_first)
-        return result
+            result = self.import_to_database(activities, truncate_first)
+            return result
+        except Exception as e:
+            raise e

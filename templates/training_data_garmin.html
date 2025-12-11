@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>训练数据管理系统 - Garmin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 磨砂玻璃效果 */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        /* 状态标签样式 */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-garmin {
+            background-color: #FEF3C7;
+            color: #D97706;
+        }
+
+        /* 表格hover效果 */
+        .table-row-hover:hover {
+            background-color: rgba(249, 250, 251, 0.8);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #4F46E5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <!-- 顶部导航栏: 极简风格 -->
+    <header class="glass-header sticky top-0 z-50 border-b border-gray-200 shadow-sm h-16 flex items-center justify-between px-6 lg:px-12">
+        <div class="flex items-center gap-3">
+            <!-- Logo 图标 -->
+            <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white shadow-lg shadow-amber-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-gray-900 tracking-tight">RunTrack <span class="text-gray-400 font-normal">Manager - Garmin</span></h1>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="text-xs hidden md:block">
+                <span class="text-gray-500">数据源: </span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z"/>
+                    </svg>
+                    Garmin Connect
+                </span>
+            </div>
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-8 h-8 rounded-full border border-gray-200 p-0.5 cursor-pointer hover:border-amber-500 transition-colors">
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="flex-1 px-6 lg:px-12 py-8 max-w-7xl mx-auto w-full">
+
+        <!-- 成功/错误提示 -->
+        <div id="successAlert" class="hidden mb-6 px-6 py-3 bg-green-50 border border-green-200 text-green-800 rounded-lg shadow-sm">
+            <span class="font-medium">✅ 操作成功</span>
+        </div>
+        <div id="errorAlert" class="hidden mb-6 px-6 py-3 bg-red-50 border border-red-200 text-red-800 rounded-lg shadow-sm">
+            <span class="font-medium">❌ 操作失败</span>
+        </div>
+
+        <!-- 顶部操作栏 -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">训练记录</h2>
+                <p class="text-sm text-gray-500 mt-1">查看并监控Garmin Connect同步的跑步数据 (只读模式)</p>
+            </div>
+
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <!-- 搜索框 -->
+                <div class="relative group w-full md:w-64">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-4 w-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-shadow shadow-sm" placeholder="搜索 ID 或类型...">
+                </div>
+
+                <!-- 刷新按钮 -->
+                <button onclick="loadRecords()" class="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-amber-600 hover:border-amber-200 transition-all shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+
+                <!-- 同步数据按钮 -->
+                <button onclick="syncGarminData()" class="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    同步数据
+                </button>
+            </div>
+        </div>
+
+        <!-- 表格卡片 -->
+        <div class="bg-white rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] overflow-hidden border border-gray-100">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-100">
+                    <thead class="bg-gray-50/50">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">ID</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">用户</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">类型</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">开始时间</th>
+                            <th scope="col" class="px-6 py-4 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">距离/时长</th>
+                            <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">心率</th>
+                            <th scope="col" class="px-6 py-4 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">步频/功率</th>
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">训练效果</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody" class="bg-white divide-y divide-gray-50 text-sm">
+                        <tr>
+                            <td colspan="7" class="px-6 py-12 text-center text-gray-500">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页 -->
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                <span id="pageInfo" class="text-sm text-gray-500">第 1 页</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="previousPage()" class="px-3 py-1 text-sm border border-gray-200 rounded text-gray-500 hover:bg-gray-50 disabled:opacity-50">上一页</button>
+                    <button onclick="nextPage()" class="px-3 py-1 text-sm border border-gray-200 rounded text-gray-500 hover:bg-gray-50">下一页</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRecords();
+        });
+
+        // 加载训练记录
+        async function loadRecords() {
+            try {
+                const response = await fetch(`/training/api/records?page=${currentPage}&per_page=20`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const tbody = document.getElementById('recordsTableBody');
+                    tbody.innerHTML = '';
+
+                    if (result.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">暂无数据,请点击"同步数据"按钮导入Garmin数据</td></tr>';
+                        return;
+                    }
+
+                    result.data.forEach(record => {
+                        const row = document.createElement('tr');
+                        row.className = 'table-row-hover transition-colors group';
+
+                        // 格式化数据
+                        const startTime = record.start_time ? record.start_time.replace(' ', ' ') : '-';
+                        const distance = record.distance_meters ? (record.distance_meters / 1000).toFixed(2) : '-';
+                        const calories = record.calories || '-';
+                        const duration = formatDuration(record.duration_seconds);
+                        const avgHr = record.avg_heart_rate || '-';
+                        const maxHr = record.max_heart_rate || '-';
+                        const userInitial = record.user_id.charAt(0).toUpperCase();
+
+                        // Garmin特有字段
+                        const avgCadence = record.avg_cadence || '-';
+                        const avgPower = record.avg_power_watts || '-';
+                        const aerobicEffect = record.aerobic_training_effect ? record.aerobic_training_effect.toFixed(1) : '-';
+                        const anaerobicEffect = record.anaerobic_training_effect ? record.anaerobic_training_effect.toFixed(1) : '-';
+                        const trainingLoad = record.training_load || '-';
+
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-400 font-mono text-xs">#${record.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-xs mr-3">${userInitial}</div>
+                                    <span class="font-medium text-gray-700">${record.user_id}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="flex items-center gap-1.5 text-gray-700 font-medium">
+                                    🏃 ${record.exercise_type}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-500">
+                                ${startTime.split(' ')[0]} <span class="text-gray-400 ml-1 text-xs">${startTime.split(' ')[1] || ''}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="text-gray-900 font-semibold">${distance}${distance !== '-' ? ' <span class="text-gray-400 text-xs font-normal">km</span>' : ''}</div>
+                                <div class="text-gray-400 text-xs">${duration} · ${calories}${calories !== '-' ? ' kcal' : ''}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                ${avgHr !== '-' ? `<div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">❤ ${avgHr} / ${maxHr}</div>` : '<span class="text-gray-400">-</span>'}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                ${avgCadence !== '-' ? `<div class="text-gray-700 text-xs">🦵 ${avgCadence} spm</div>` : ''}
+                                ${avgPower !== '-' ? `<div class="text-gray-700 text-xs">⚡ ${avgPower} W</div>` : ''}
+                                ${avgCadence === '-' && avgPower === '-' ? '<span class="text-gray-400">-</span>' : ''}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                ${aerobicEffect !== '-' || anaerobicEffect !== '-' ? `
+                                    <div class="text-xs">
+                                        ${aerobicEffect !== '-' ? `<div class="text-blue-600">有氧 ${aerobicEffect}</div>` : ''}
+                                        ${anaerobicEffect !== '-' ? `<div class="text-purple-600">无氧 ${anaerobicEffect}</div>` : ''}
+                                        ${trainingLoad !== '-' ? `<div class="text-gray-500 mt-1">负荷 ${trainingLoad}</div>` : ''}
+                                    </div>
+                                ` : '<span class="text-gray-400">-</span>'}
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    // 更新分页信息
+                    totalPages = Math.ceil(result.total / result.per_page);
+                    document.getElementById('pageInfo').textContent = `显示 ${(currentPage-1)*result.per_page + 1} 到 ${Math.min(currentPage*result.per_page, result.total)} 条,共 ${result.total} 条记录`;
+                }
+            } catch (error) {
+                showError('加载数据失败: ' + error.message);
+            }
+        }
+
+        // 格式化时长
+        function formatDuration(seconds) {
+            if (!seconds) return '-';
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 同步Garmin数据
+        async function syncGarminData() {
+            if (!confirm('确定要从Garmin Connect同步最新数据吗?此操作将覆盖现有数据。')) {
+                return;
+            }
+
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<div class="loading"></div> 正在同步数据...';
+
+            try {
+                const response = await fetch('/training/api/sync_garmin_data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showSuccess(result.message);
+                    loadRecords();
+                } else {
+                    showError(result.message);
+                }
+            } catch (error) {
+                showError('同步失败: ' + error.message);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        }
+
+        // 上一页
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadRecords();
+            }
+        }
+
+        // 下一页
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadRecords();
+            }
+        }
+
+        // 显示成功消息
+        function showSuccess(message) {
+            const alert = document.getElementById('successAlert');
+            alert.textContent = '✅ ' + message;
+            alert.classList.remove('hidden');
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 3000);
+        }
+
+        // 显示错误消息
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            alert.textContent = '❌ ' + message;
+            alert.classList.remove('hidden');
+            setTimeout(() => {
+                alert.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
