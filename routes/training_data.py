@@ -341,10 +341,20 @@ def switch_source():
 def sync_garmin_data():
     """同步Garmin数据 - 调用setup页面的导入逻辑"""
     try:
+        # 从request body获取is_cn, 优先于config
+        data = request.json or {}
+        garmin_is_cn_str = data.get('garmin_is_cn')
+
+        if garmin_is_cn_str is not None:
+            # 如果从请求中获取,布尔化处理
+            garmin_is_cn = str(garmin_is_cn_str).lower() in ['true', '1', 't', 'y', 'yes']
+        else:
+            # 否则从config读取Garmin配置
+            garmin_is_cn = get_config_value('GARMIN_IS_CN', True)
+
         # 从config读取Garmin配置
         garmin_email = get_config_value('GARMIN_EMAIL', '')
         garmin_password = get_config_value('GARMIN_PASSWORD', '')
-        garmin_is_cn = get_config_value('GARMIN_IS_CN', True)
 
         if not garmin_email or not garmin_password:
             return jsonify({
