@@ -6,7 +6,7 @@
 
 **Intelligent Running Training Assistant | Multi-Agent Collaborative System**
 
-[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html) [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)](https://github.com/zephyr4123/synapse-run)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html) [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Version](https://img.shields.io/badge/version-1.0.1-brightgreen.svg)](https://github.com/zephyr4123/synapse-run)
 
 [English](./README-EN.md) | [中文文档](./README.md) | [Changelog](./docs/updateLog.md)
 
@@ -39,6 +39,26 @@
 4. Save the file and restart the program to use Garmin Connect normally.
 
 > 💡 **Tip**: This is a known issue in the dependency library. The fix does not affect Garmin Connect's normal functionality. If you encounter permission issues, use `sudo` or switch to a user with write permissions.
+
+---
+
+## 🎉 v1.0.1 Release Notes
+
+**Release Date**: 16th December 2025
+
+### 🐛 Bug Fixes
+
+**Special thanks to community contributor [@JacobZang](https://github.com/JacobZang) for the PR fix!**
+
+- **Fixed Garmin Data Sync Issue**: Fixed the problem where the system did not properly prioritize the `is_cn` parameter passed from the frontend when syncing Garmin data
+  - **Issue Description**: The system did not prioritize the region parameter passed from the frontend during Garmin data synchronization, which could cause users in different regions to access the wrong Garmin server
+  - **Fix Solution**: Optimized parameter passing logic to ensure the frontend's `is_cn` parameter is correctly used in the sync process
+  - **Impact Scope**: All users using Garmin data source
+  - **Contributor**: [@JacobZang](https://github.com/JacobZang)
+
+### 🙏 Special Thanks
+
+Thanks to [@JacobZang](https://github.com/JacobZang) for discovering and fixing this issue that affected Garmin user experience! This is the first community PR our project has received, and we are very grateful for your contribution! 🎉
 
 ---
 

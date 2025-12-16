@@ -6,7 +6,7 @@
 
 **智能跑步训练助手 | 多智能体协作系统**
 
-[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html) [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)](https://github.com/zephyr4123/synapse-run)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html) [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/) [![Version](https://img.shields.io/badge/version-1.0.1-brightgreen.svg)](https://github.com/zephyr4123/synapse-run)
 
 [English](./README-EN.md) | [中文文档](./README.md) | [更新日志](./docs/updateLog.md)
 
@@ -39,6 +39,26 @@
 4. 保存文件后重新运行程序即可正常使用。
 
 > 💡 **提示**: 这是依赖库的已知问题,修复后不影响 Garmin Connect 的正常功能。如遇到权限问题,请使用 `sudo` 或切换到具有写权限的用户。
+
+---
+
+## 🎉 v1.0.1 更新说明
+
+**发布日期**: 2025年12月16日
+
+### 🐛 问题修复
+
+**感谢社区贡献者 [@JacobZang](https://github.com/JacobZang) 提交的PR修复!**
+
+- **修复Garmin数据同步问题**: 修复了在同步Garmin数据时未能正确优先使用前端传递的`is_cn`参数的问题
+  - **问题描述**: 系统在同步Garmin数据时,没有优先使用前端传递的地区参数,可能导致不同地区用户访问错误的Garmin服务器
+  - **修复方案**: 优化参数传递逻辑,确保前端的`is_cn`参数在同步流程中被正确使用
+  - **影响范围**: 所有使用Garmin数据源的用户
+  - **贡献者**: [@JacobZang](https://github.com/JacobZang)
+
+### 🙏 特别致谢
+
+感谢 [@JacobZang](https://github.com/JacobZang) 发现并修复了这个影响Garmin用户体验的问题!这是我们项目收到的第一个社区PR,非常感谢您的贡献!🎉
 
 ---
 
