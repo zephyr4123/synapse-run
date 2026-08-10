@@ -1,3 +1,5 @@
+
+
 <div align="center">
 
 <img src="static/image/logo.png" alt="Synapse Run Logo" width="100%">
@@ -283,7 +285,7 @@ conda activate synapse_run
 python app.py
 ```
 
-启动后,浏览器会自动打开 **http://localhost:5000**
+启动后,请在浏览器中手动访问 **http://localhost:5000**
 
 ---
 
